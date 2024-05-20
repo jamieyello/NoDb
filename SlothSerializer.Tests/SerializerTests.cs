@@ -82,6 +82,16 @@ namespace SlothSockets.Tests
         #endregion
 
         [TestMethod]
+        public void SerializeBool()
+        {
+            var bb = new BitBuilderBuffer();
+            bb.Append(true);
+            var reader = bb.GetReader();
+            var read = reader.ReadBool();
+            Assert.AreEqual(true, read);
+        }
+
+        [TestMethod]
         public void SerializeTest1()
         {
             var bb = new BitBuilderBuffer();

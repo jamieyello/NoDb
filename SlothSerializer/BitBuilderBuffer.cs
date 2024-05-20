@@ -4,12 +4,12 @@ namespace SlothSerializer;
 
 /// <summary> Serializes data to a ulong[]. Grows in size automatically. Does not shrink. </summary>
 public class BitBuilderBuffer {
-    List<ulong> Bits { get; set; } = new() { 0 }; // swap for lowmemlist when brave enough
+    List<ulong> Bits { get; set; } = new() { }; // swap for lowmemlist when brave enough
     public readonly BitBuilderWriter Writer; // note: the writer contains the final ulong.
 
     /// <summary> Total size in bits. </summary>
     public long TotalLength => 
-        (Bits.Count - 1) * 64 + Writer.XPos;
+        Bits.Count * 64 + Writer.XPos;
 
     public ulong this[int i] => 
         i == Bits.Count ? Writer.Bits : Bits[i];

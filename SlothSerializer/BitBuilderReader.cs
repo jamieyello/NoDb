@@ -15,7 +15,7 @@ public class BitBuilderReader {
     public ulong this[int i] => _read_indexed(i);
     public long Length => _get_total_length();
 
-    // make methods static
+    // todo: make methods static
     public BitBuilderReader(Func<int, ulong> read_indexed, Func<long> get_total_length) {
         _read_indexed = read_indexed;
         _get_total_length = get_total_length;
