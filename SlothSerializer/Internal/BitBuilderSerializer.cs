@@ -18,8 +18,7 @@ internal static class BitBuilderSerializer {
         type.IsPrimitive || (type == typeof(string));
 
     static readonly Dictionary<Type, FieldInfo[]> cache_GetTargetFields = new();
-    internal static FieldInfo[] GetTargetFields(Type type, SerializeMode mode) {
-        if ((mode & SerializeMode.Fields) == 0) return Array.Empty<FieldInfo>();
+    internal static FieldInfo[] GetTargetFields(Type type) {
         if (cache_GetTargetFields.TryGetValue(type, out var result)) return result;
 
         var binding_flags = BindingFlags.Instance | BindingFlags.Public;
@@ -28,11 +27,25 @@ internal static class BitBuilderSerializer {
         // This is consistent with how JsonConvert works.
         if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(KeyValuePair<,>)) {
             binding_flags = BindingFlags.Instance | BindingFlags.NonPublic;
-            mode = SerializeMode.Fields;
         }
 
         result = type.GetFields(binding_flags).OrderBy(field => field.MetadataToken).ToArray();
         cache_GetTargetFields.Add(type, result);
+        return result;
+    }
+
+    static readonly Dictionary<Type, PropertyInfo[]> cache_GetTargetProperties = new();
+    internal static PropertyInfo[] GetTargetProperties(Type type) {
+        if (cache_GetTargetProperties.TryGetValue(type, out var result)) return result;
+
+        var binding_flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+
+        result = type
+            .GetProperties(binding_flags)
+            .OrderBy(property => property.MetadataToken)
+            .Where(property => property.SetMethod != null && property.GetMethod != null)
+            .ToArray();
+        cache_GetTargetProperties.Add(type, result);
         return result;
     }
 
@@ -94,9 +107,16 @@ internal static class BitBuilderSerializer {
             } 
             else {
                 builder.Append(new ObjectSerializationFlags() { IsNull = false, IsICollection = false });
-                foreach (var field in GetTargetFields(type, default_mode)) {
-                    // reflection slow?
-                    Serialize(field.GetValue(obj), builder, default_mode);
+                if ((default_mode & SerializeMode.Fields) > 0) {
+                    foreach (var field in GetTargetFields(type)) {
+                        // reflection slow?
+                        Serialize(field.GetValue(obj), builder, default_mode);
+                    }
+                }
+                if ((default_mode & SerializeMode.Properties) > 0) {
+                    foreach (var property in GetTargetProperties(type)) {
+                        Serialize(property.GetValue(obj), builder, default_mode);
+                    }
                 }
             }
         }
@@ -147,9 +167,13 @@ internal static class BitBuilderSerializer {
             else {
                 var obj = Activator.CreateInstance(type)
                     ?? throw new Exception($"Failed to create instance of {type.FullName}");
-                foreach (var field in GetTargetFields(type, default_mode)) {
+                foreach (var field in GetTargetFields(type)) {
                     // reflection slow
                     field.SetValue(obj, DeSerialize(field.FieldType, reader, default_mode));
+                }
+                foreach (var property in GetTargetProperties(type)) {
+                    // reflection slow
+                    property.SetValue(obj, DeSerialize(property.PropertyType, reader, default_mode));
                 }
                 return obj;
             }

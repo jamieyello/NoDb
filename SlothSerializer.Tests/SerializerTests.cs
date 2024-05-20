@@ -16,7 +16,9 @@ namespace SlothSockets.Tests
         // Arrays, null values, T? types, properties, attributes
 
         #region Test Classes
+#pragma warning disable IDE0079 // Remove unnecessary suppression
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+#pragma warning disable IDE0052 // Remove unread private members
         struct TestClass1
         {
             //public ulong test1;
@@ -25,7 +27,7 @@ namespace SlothSockets.Tests
             //public ulong test4;
             public string test_string;
 
-            public bool Matches(TestClass1 t) =>
+            public readonly bool Matches(TestClass1 t) =>
                 test3 == t.test3 &&
                 test_string == t.test_string;
         }
@@ -78,7 +80,28 @@ namespace SlothSockets.Tests
                 test_dictionary.SequenceEqual(t.test_dictionary) &&
                 test_enum.Equals(t.test_enum);
         }
+
+        public class TestPropClass {
+            public int TestValue1 { get; set; }
+            public int TestValue2 { get; init; }
+            int TestValue3 { get; set; }
+            public int TestValue4 { get; private set; }
+
+            public void SetTestValue3(int value) => 
+                TestValue3 = value;
+
+            public void SetTestValue4(int value) =>
+                TestValue4 = value;
+
+            public bool Matches(TestPropClass t) =>
+                t.TestValue1 == TestValue1 &&
+                t.TestValue2 == TestValue2 &&
+                t.TestValue3 == TestValue3 &&
+                t.TestValue4 == TestValue4;
+        }
+#pragma warning restore IDE0052 // Remove unread private members
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+#pragma warning restore IDE0079 // Remove unnecessary suppression
         #endregion
 
         [TestMethod]
@@ -89,6 +112,25 @@ namespace SlothSockets.Tests
             var reader = bb.GetReader();
             var read = reader.ReadBool();
             Assert.AreEqual(true, read);
+        }
+
+        [TestMethod]
+        public void SerializeProperties()
+        {
+            var bb = new BitBuilderBuffer();
+            var original = new TestPropClass()
+            {
+                TestValue1 = 1,
+                TestValue2 = 2,
+            };
+            original.SetTestValue3(3);
+            original.SetTestValue4(4);
+            bb.Append(original, SerializeMode.Properties);
+            Debug.WriteLine(bb.GetDebugString());
+
+            var read = bb.GetReader().Read<TestPropClass>()
+                ?? throw new Exception("Read null.");
+            Assert.IsTrue(original.Matches(read));
         }
 
         [TestMethod]
