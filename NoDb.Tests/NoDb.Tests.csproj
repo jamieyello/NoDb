@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\NoDb\NoDb.csproj" />
+    <ProjectReference Include="..\SlothSerializer\SlothSerializer.csproj" />
   </ItemGroup>
 
 </Project>

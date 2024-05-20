@@ -24,13 +24,11 @@ public class DifferenceWatcher<T> where T : class
         }
     }
 
-    public DifferenceWatcher(T obj, Func<DifferenceWatcherEventArgs<T>, Task> update_event_callback, DifferenceWatcherOptions? options = null)
-    {
+    public DifferenceWatcher(T obj, Func<DifferenceWatcherEventArgs<T>, Task> update_event_callback, DifferenceWatcherOptions? options = null) {
         this.obj = obj;
         this.options = options ?? new();
         _sync_update += (o, e) => update_event_callback(e);
-        if (this.options.SyncInterval.HasValue)
-        {
+        if (this.options.SyncInterval.HasValue) {
             _timer = new(this.options.SyncInterval.Value);
             _timer.Elapsed += (o, e) => CheckForUpdate();
             _timer.AutoReset = true;
@@ -38,12 +36,9 @@ public class DifferenceWatcher<T> where T : class
         }
     }
 
-    public void CheckForUpdate()
-    {
-        lock (_update_lock) // This needs to not queue every call, will lead to bad things
-        {
-            try
-            {
+    public void CheckForUpdate() {
+        lock (_update_lock) { // This needs to not queue every call, will lead to bad things
+            try {
                 Monitor.Enter(_value_lock);
                 var current = new BitBuilderBuffer();
                 current.Append(obj);
@@ -53,22 +48,18 @@ public class DifferenceWatcher<T> where T : class
                     bool match = current.Matches(_previous_value);
                 }
 
-                if (_previous_value == null || !current.Matches(_previous_value))
-                {
-                    if (options.TriggerInitial || _previous_value != null)
-                    {
+                if (_previous_value == null || !current.Matches(_previous_value)) {
+                    if (options.TriggerInitial || _previous_value != null) {
                         _sync_update.Invoke(obj, new() { Value = obj, Reader = current.GetReader() });
                     }
                     _previous_value?.Clear();
                     _previous_value = current;
                 }
             }
-            catch (Exception)
-            {
+            catch (Exception) {
                 throw;
             }
-            finally
-            {
+            finally {
                 //Monitor.Exit(_update_lock);
                 Monitor.Exit(_value_lock);
             }

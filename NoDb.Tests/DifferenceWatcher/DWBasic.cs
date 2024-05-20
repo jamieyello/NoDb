@@ -1,4 +1,5 @@
 ﻿using NoDb.Difference;
+using SlothSerializer;
 
 namespace NoDb.Tests.DW;
 
@@ -9,11 +10,12 @@ public class DWBasic
     public void TestDW()
     {
         var testobj = new TestUserClass();
+        var test_bb = new BitBuilderBuffer();
+        
         int dif_count = 0;
 
         async Task callback(DifferenceWatcherEventArgs<TestUserClass> args) { 
             dif_count++;
-            testobj.Id++;
         }
 
         var dw = new DifferenceWatcher<TestUserClass?>(testobj, callback, new() { SyncInterval = TimeSpan.FromMilliseconds(50) });
@@ -23,5 +25,6 @@ public class DWBasic
         Thread.Sleep(100);
         testobj.Name = "jamie3";
         Thread.Sleep(100);
+        Assert.AreEqual(2, dif_count);
     }
 }
