@@ -34,7 +34,7 @@ public class BitBuilderWriter {
 
     readonly Action<ulong> _output;
     internal byte XPos = 0;
-    internal ulong Bits;
+    internal ulong Bits = 0;
 
     public BitBuilderWriter(Action<ulong> output) =>
         _output = output;
@@ -157,6 +157,12 @@ public class BitBuilderWriter {
 
     void Flush() {
         _output(Bits);
+        Bits = 0;
+    }
+
+    /// <summary> Resets this writer and treats it as if it was just created. </summary>
+    internal void Reset() {
+        XPos = 0;
         Bits = 0;
     }
 }

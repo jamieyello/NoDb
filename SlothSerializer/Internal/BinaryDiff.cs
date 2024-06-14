@@ -2,26 +2,26 @@
 
 public class BinaryDiff
 {
-    public enum MethodType
+    public enum DiffMethodType
     {
         replace
     }
 
-    MethodType Method { get; set; }
+    DiffMethodType Method { get; set; }
     ulong[] PatchData { get; set; }
     ulong? Hash { get; set; }
 
     public BinaryDiff() { }
-    public BinaryDiff(BitBuilderReader old, BitBuilderReader new_, MethodType method)
+    public BinaryDiff(BitBuilderReader old, BitBuilderReader new_, DiffMethodType method)
     {
         Method = method;
-        if (Method == MethodType.replace) PatchData = new_.ToArray();
+        if (Method == DiffMethodType.replace) PatchData = new_.ToArray();
         else throw new NotImplementedException();
     }
 
     public void Apply(ulong[] binary)
     {
-        if (Method == MethodType.replace) ApplyReplace(PatchData, binary);
+        if (Method == DiffMethodType.replace) ApplyReplace(PatchData, binary);
         else throw new NotImplementedException();
     }
 

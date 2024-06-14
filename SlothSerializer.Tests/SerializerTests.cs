@@ -21,10 +21,10 @@ namespace SlothSockets.Tests
 #pragma warning disable IDE0052 // Remove unread private members
         struct TestClass1
         {
-            //public ulong test1;
-            //public ulong test2;
+            public ulong test1;
+            public ulong test2;
             public ulong test3;
-            //public ulong test4;
+            public ulong test4;
             public string test_string;
 
             public readonly bool Matches(TestClass1 t) =>
@@ -99,6 +99,16 @@ namespace SlothSockets.Tests
                 t.TestValue3 == TestValue3 &&
                 t.TestValue4 == TestValue4;
         }
+
+        class TestClass5
+        {
+            public byte test_value1;
+            public byte[] test_values;
+
+            public bool Matches(TestClass5 v) =>
+                test_value1 == v.test_value1 &&
+                ((test_values == null && v.test_values == null) || test_values.SequenceEqual(v.test_values));
+        }
 #pragma warning restore IDE0052 // Remove unread private members
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 #pragma warning restore IDE0079 // Remove unnecessary suppression
@@ -128,7 +138,7 @@ namespace SlothSockets.Tests
             bb.Append(original, SerializeMode.Properties);
             Debug.WriteLine(bb.GetDebugString());
 
-            var read = bb.GetReader().Read<TestPropClass>()
+            var read = bb.GetReader().Read<TestPropClass>(SerializeMode.Properties)
                 ?? throw new Exception("Read null.");
             Assert.IsTrue(original.Matches(read));
         }
@@ -139,16 +149,16 @@ namespace SlothSockets.Tests
             var bb = new BitBuilderBuffer();
             var original = new TestClass1()
             {
-                //test1 = 1,
-                //test2 = 2,
+                test1 = 1,
+                test2 = 2,
                 test3 = 3,
-                //test4 = 4,
-                //test_string = "wowowow",
+                test4 = 4,
+                test_string = "wowowow",
             };
             bb.Append(original, SerializeMode.Fields);
             Debug.WriteLine(bb.GetDebugString());
 
-            var read = bb.GetReader().Read<TestClass1>();
+            var read = bb.GetReader().Read<TestClass1>(SerializeMode.Fields);
             Assert.AreEqual(original, read);
         }
 
@@ -158,7 +168,7 @@ namespace SlothSockets.Tests
             var bb = new BitBuilderBuffer();
             var original = new TestClass2()
             {
-                test_array = new ulong[] { 1, 2, 3 },
+                test_array = [1, 2, 3],
                 test_array2 = new ulong[,] { { 1, 2, 3 }, { 4, 5, 6 } },
                 test_string = "wowowow",
                 test_string2 = "@#wowowowFF",
@@ -173,7 +183,7 @@ namespace SlothSockets.Tests
             bb.Append(original, SerializeMode.Fields);
             Debug.WriteLine(bb.GetDebugString());
 
-            var read = bb.GetReader().Read<TestClass2>()
+            var read = bb.GetReader().Read<TestClass2>(SerializeMode.Fields)
                 ?? throw new Exception("Read null.");
             Assert.IsTrue(original.Matches(read));
         }
@@ -186,12 +196,12 @@ namespace SlothSockets.Tests
             var original = new TestClass3()
             {
                 test_value1 = value,
-                test_values = new[] { value, value, value, }
+                test_values = [value, value, value,]
             };
             bb.Append(original, SerializeMode.Fields);
             Debug.WriteLine(bb.GetDebugString());
 
-            var read = bb.GetReader().Read<TestClass3>()
+            var read = bb.GetReader().Read<TestClass3>(SerializeMode.Fields)
                 ?? throw new Exception("Read null.");
             Assert.IsTrue(original.Matches(read));
         }
@@ -202,7 +212,7 @@ namespace SlothSockets.Tests
             var bb = new BitBuilderBuffer();
             var original = new TestClass4()
             {
-                test_list = new() { 1, 2, 4, 5 },
+                test_list = [1, 2, 4, 5],
                 test_kvp = new(8, 7),
                 test_dictionary = new() {
                     { 0, 3 },
@@ -214,7 +224,25 @@ namespace SlothSockets.Tests
             bb.Append(original, SerializeMode.Fields);
             Debug.WriteLine(bb.GetDebugString());
 
-            var read = bb.GetReader().Read<TestClass4>()
+            var read = bb.GetReader().Read<TestClass4>(SerializeMode.Fields)
+                ?? throw new Exception("Read null.");
+            Assert.IsTrue(original.Matches(read));
+        }
+
+        [TestMethod]
+        public void SerializeTest5()
+        {
+            var bb = new BitBuilderBuffer();
+            byte value = 5;
+            var original = new TestClass5()
+            {
+                test_value1 = value,
+                test_values = [value, value, value,]
+            };
+            bb.Append(original, SerializeMode.Fields);
+            Debug.WriteLine(bb.GetDebugString());
+
+            var read = bb.GetReader().Read<TestClass5>(SerializeMode.Fields)
                 ?? throw new Exception("Read null.");
             Assert.IsTrue(original.Matches(read));
         }

@@ -7,7 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\SlothSerializer\SlothSerializer\SlothSerializer.csproj" />
     <ProjectReference Include="..\SlothSerializer\SlothSerializer.csproj" />
   </ItemGroup>
 

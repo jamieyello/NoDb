@@ -107,13 +107,13 @@ internal static class BitBuilderSerializer {
             } 
             else {
                 builder.Append(new ObjectSerializationFlags() { IsNull = false, IsICollection = false });
-                if ((default_mode & SerializeMode.Fields) > 0) {
+                if ((mode & SerializeMode.Fields) > 0) {
                     foreach (var field in GetTargetFields(type)) {
                         // reflection slow?
                         Serialize(field.GetValue(obj), builder, default_mode);
                     }
                 }
-                if ((default_mode & SerializeMode.Properties) > 0) {
+                if ((mode & SerializeMode.Properties) > 0) {
                     foreach (var property in GetTargetProperties(type)) {
                         Serialize(property.GetValue(obj), builder, default_mode);
                     }
@@ -145,15 +145,14 @@ internal static class BitBuilderSerializer {
                     var element_type = type.GetElementType() ?? throw new Exception("Failed to get array type.");
 
                     var array_rank = type.GetArrayRank();
-                    var a_obj = Array.CreateInstance(element_type, flags.ArrayLengths);
+                    var array_obj = Array.CreateInstance(element_type, flags.ArrayLengths);
                     var indices = new long[array_rank];
 
                     do {
-                        // reflection slow
-                        a_obj.SetValue(DeSerialize(element_type, reader, default_mode), indices);
+                        array_obj.SetValue(DeSerialize(element_type, reader, default_mode), indices);
                     } while (IncrementArray(indices, flags.ArrayLengths));
 
-                    return a_obj;
+                    return array_obj;
                 }
                 else {
                     var obj = Activator.CreateInstance(type)
@@ -167,13 +166,17 @@ internal static class BitBuilderSerializer {
             else {
                 var obj = Activator.CreateInstance(type)
                     ?? throw new Exception($"Failed to create instance of {type.FullName}");
-                foreach (var field in GetTargetFields(type)) {
-                    // reflection slow
-                    field.SetValue(obj, DeSerialize(field.FieldType, reader, default_mode));
+                if ((mode & SerializeMode.Fields) > 0) {
+                    foreach (var field in GetTargetFields(type)) {
+                        // reflection slow
+                        field.SetValue(obj, DeSerialize(field.FieldType, reader, default_mode));
+                    }
                 }
-                foreach (var property in GetTargetProperties(type)) {
-                    // reflection slow
-                    property.SetValue(obj, DeSerialize(property.PropertyType, reader, default_mode));
+                if ((mode & SerializeMode.Properties) > 0) {
+                    foreach (var property in GetTargetProperties(type)) {
+                        // reflection slow
+                        property.SetValue(obj, DeSerialize(property.PropertyType, reader, default_mode));
+                    }
                 }
                 return obj;
             }

@@ -56,7 +56,7 @@ public class BitBuilderReader {
     }
 
     // Debatable whether this should be here or not. (High level method in low level class)
-    public T? Read<T>(SerializeMode mode = SerializeMode.Fields) =>
+    public T? Read<T>(SerializeMode mode = SerializeMode.Properties) =>
         (T?)BitBuilderSerializer.DeSerialize(typeof(T), this, mode);
     
     internal object Read(Type type, long? array_length = 0) =>
@@ -110,11 +110,24 @@ public class BitBuilderReader {
         return sb.ToString();
     }
 
-    public bool[] ReadBools(long count) => ReadArray<bool>(1, count);
+    public bool[] ReadBools(long count) {
+        var result = new bool[count];
+        for (long i = 0; i < count; i++) result[i] = (Read(1) & 1) > 0;
+        return result;
+    }
 
-    public sbyte[] ReadSBytes(long count) => ReadArray<sbyte>(8, count);
-    public byte[] ReadBytes(long count) => ReadArray<byte>(8, count);
+    public sbyte[] ReadSBytes(long count) {
+        var result = new sbyte[count];
+        for (long i = 0; i < count; i++) result[i] = (sbyte)Read(8);
+        return result;
+    }
+    public byte[] ReadBytes(long count) {
+        var result = new byte[count];
+        for (long i = 0; i < count; i++) result[i] = (byte)Read(8);
+        return result;
+    }
 
+    // I can only assume these will crash? (casting ulong to smaller numerics in a generic)
     public ushort[] ReadUShorts(long count) => ReadArray<ushort>(16, count);
     public short[] ReadShorts(long count) => ReadArray<short>(16, count);
     public char[] ReadChars(long count) => ReadArray<char>(16, count);
@@ -154,12 +167,12 @@ public class BitBuilderReader {
         var result = new T[count];
 
         // Todo: speedup here with a more complex re-implementation --
-        if (typeof(T) == typeof(long)) {
+        if (typeof(T).IsSignedNumeric()) {
             // Compiler is dumb with safety checks (specifically ulong to long)
             for (long i = 0; i < count; i++) result[i] = (T)(object)(long)Read(length);
         }
         else {
-            for (long i = 0; i < count; i++) result[i] = (T)(object)Read(length);
+            for (long i = 0; i < count; i++) result[i] = checked((T)(object)Read(length));
         }
         // --
 

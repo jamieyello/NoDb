@@ -9,12 +9,13 @@ namespace NoDb.Difference;
 public class DifferenceWatcher<T> where T : class
 {
     readonly T obj;
-    readonly DifferenceWatcherOptions options;
+    readonly DifferenceWatcherOptions _diff_options;
     readonly System.Timers.Timer? _timer;
     readonly object _value_lock = new();
     readonly object _update_lock = new();
     readonly EventHandler<DifferenceWatcherEventArgs<T>> _sync_update;
-    BitBuilderBuffer? _previous_value;
+    BitBuilderBuffer _previous_value;
+    bool _initial = true;
 
     public T Value {
         get {
@@ -24,12 +25,14 @@ public class DifferenceWatcher<T> where T : class
         }
     }
 
-    public DifferenceWatcher(T obj, Func<DifferenceWatcherEventArgs<T>, Task> update_event_callback, DifferenceWatcherOptions? options = null) {
+    public DifferenceWatcher(T obj, Func<DifferenceWatcherEventArgs<T>, Task> update_event_callback, DifferenceWatcherOptions? diff_options = null) {
         this.obj = obj;
-        this.options = options ?? new();
+        _previous_value = new();
+        _previous_value.Append(obj);
+        _diff_options = diff_options ?? new();
         _sync_update += (o, e) => update_event_callback(e);
-        if (this.options.SyncInterval.HasValue) {
-            _timer = new(this.options.SyncInterval.Value);
+        if (_diff_options.SyncInterval.HasValue) {
+            _timer = new(_diff_options.SyncInterval.Value);
             _timer.Elapsed += (o, e) => CheckForUpdate();
             _timer.AutoReset = true;
             _timer.Enabled = true;
@@ -43,17 +46,11 @@ public class DifferenceWatcher<T> where T : class
                 var current = new BitBuilderBuffer();
                 current.Append(obj);
 
-                // debugging breakpoint --
-                if (_previous_value != null) { 
-                    bool match = current.Matches(_previous_value);
-                }
-
-                if (_previous_value == null || !current.Matches(_previous_value)) {
-                    if (options.TriggerInitial || _previous_value != null) {
-                        _sync_update.Invoke(obj, new() { Value = obj, Reader = current.GetReader() });
-                    }
+                if (!current.Matches(_previous_value) || (_initial && _diff_options.TriggerInitial)) {
+                    _sync_update.Invoke(obj, new() { Value = obj, Diff = new(_previous_value.GetReader(), current.GetReader(), _diff_options.DiffMethod) });
                     _previous_value?.Clear();
                     _previous_value = current;
+                    _initial = false;
                 }
             }
             catch (Exception) {
