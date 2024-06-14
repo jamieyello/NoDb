@@ -2,10 +2,10 @@
 
 namespace NoDb.Difference;
 
-public class DifferenceWatcherOptions
+public class DifferenceWatcherConfig
 {
-    /// <summary> How often changes should be checked for. Set to 1 second by default. Set to null to never check automatically. </summary>
-    public TimeSpan? SyncInterval { get; init; } = TimeSpan.FromSeconds(1);
+    /// <summary> How often changes should be checked for. Leave null to never check automatically. </summary>
+    public TimeSpan? AutoSyncInterval { get; init; }
 
     /// <summary>
     /// If set to true, an update event will be triggered on the first check.

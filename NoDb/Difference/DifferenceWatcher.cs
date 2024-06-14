@@ -9,7 +9,7 @@ namespace NoDb.Difference;
 public class DifferenceWatcher<T> where T : class
 {
     readonly T obj;
-    readonly DifferenceWatcherOptions _diff_options;
+    readonly DifferenceWatcherConfig _config;
     readonly System.Timers.Timer? _timer;
     readonly object _value_lock = new();
     readonly object _update_lock = new();
@@ -25,14 +25,14 @@ public class DifferenceWatcher<T> where T : class
         }
     }
 
-    public DifferenceWatcher(T obj, Func<DifferenceWatcherEventArgs<T>, Task> update_event_callback, DifferenceWatcherOptions? diff_options = null) {
+    public DifferenceWatcher(T obj, Action<DifferenceWatcherEventArgs<T>> update_event_callback, DifferenceWatcherConfig config) {
         this.obj = obj;
         _previous_value = new();
         _previous_value.Append(obj);
-        _diff_options = diff_options ?? new();
+        _config = config;
         _sync_update += (o, e) => update_event_callback(e);
-        if (_diff_options.SyncInterval.HasValue) {
-            _timer = new(_diff_options.SyncInterval.Value);
+        if (_config.AutoSyncInterval.HasValue) {
+            _timer = new(_config.AutoSyncInterval.Value);
             _timer.Elapsed += (o, e) => CheckForUpdate();
             _timer.AutoReset = true;
             _timer.Enabled = true;
@@ -46,8 +46,8 @@ public class DifferenceWatcher<T> where T : class
                 var current = new BitBuilderBuffer();
                 current.Append(obj);
 
-                if (!current.Matches(_previous_value) || (_initial && _diff_options.TriggerInitial)) {
-                    _sync_update.Invoke(obj, new() { Value = obj, Diff = new(_previous_value.GetReader(), current.GetReader(), _diff_options.DiffMethod) });
+                if (!current.Matches(_previous_value) || (_initial && _config.TriggerInitial)) {
+                    _sync_update.Invoke(obj, new() { Value = obj, Diff = new(_previous_value.GetReader(), current.GetReader(), _config.DiffMethod) });
                     _previous_value?.Clear();
                     _previous_value = current;
                     _initial = false;

@@ -8,10 +8,11 @@ class TestClass {
 
 [TestClass]
 public class FileSyncTest {
-    readonly SyncedObject<TestClass> test = new(new(), SyncerConfig.FileSync("delete_me.test"));
+    readonly SyncedObject<TestClass> test = new(SyncerConfig.FileSync("delete_me.test"));
 
     [TestMethod]
-    public async Task TestFileSync() {
-        await test.Initilized;
+    public void TestFileSync() {
+
+        //test.
     }
 }

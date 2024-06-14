@@ -14,11 +14,11 @@ public class DWBasic
         
         int dif_count = 0;
 
-        async Task callback(DifferenceWatcherEventArgs<TestUserClass> args) { 
+        void callback(DifferenceWatcherEventArgs<TestUserClass> args) { 
             dif_count++;
         }
 
-        var dw = new DifferenceWatcher<TestUserClass?>(testobj, callback, new() { SyncInterval = TimeSpan.FromMilliseconds(50) });
+        var dw = new DifferenceWatcher<TestUserClass>(testobj, callback, new() { AutoSyncInterval = TimeSpan.FromMilliseconds(50) });
 
         Thread.Sleep(100);
         testobj.Name = "jamie";
