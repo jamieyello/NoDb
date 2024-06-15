@@ -7,12 +7,20 @@ namespace SlothSerializer;
 /// <summary> Serializes data to a ulong[]. Grows in size automatically. Does not shrink. </summary>
 public class BitBuilderBuffer {
     const string FILE_HEADER_TEXT = "BitBuilder";
+
     List<ulong> Bits { get; set; } = new(); // swap for lowmemlist when brave enough
     public readonly BitBuilderWriter Writer; // note: the writer contains the final ulong.
 
     /// <summary> Total size in bits. </summary>
     public long TotalLength => 
         Bits.Count * 64 + Writer.XPos;
+
+    public long TotalStreamLengthBytes =>
+        Encoding.ASCII.GetByteCount(FILE_HEADER_TEXT) + 
+        8 + // header
+        8 + // size
+        TotalLength / 8 + // bytes
+        ((TotalLength % 8) > 0 ? 1 : 0); // trailing byte
 
     public ulong this[int i] => 
         i == Bits.Count ? Writer.Bits : Bits[i];
@@ -70,20 +78,20 @@ public class BitBuilderBuffer {
         await Task.Run(() => WriteToDisk(file_path));
 
     /// <summary> Creates a new file and writes the contents of this buffer to it. Overwrites existing file if it exists. </summary>
-    /// <remarks> Note: Adds a header that distinguishes it from <see cref="WriteToStream"/>.
     public void WriteToDisk(string file_path) {
         var dir = Path.GetDirectoryName(file_path);
         if (!string.IsNullOrWhiteSpace(dir)) Directory.CreateDirectory(dir);
         if (File.Exists(file_path)) File.Delete(file_path);
 
-        using var fw = new FileStream(file_path, FileMode.CreateNew);
-        fw.Write(Encoding.ASCII.GetBytes(FILE_HEADER_TEXT));
-        fw.Write(BitConverter.GetBytes((ulong)0)); // reserve the next 8 bytes
-        WriteToStream(fw);
-        fw.Close();
+        using var fs = new FileStream(file_path, FileMode.CreateNew);
+        WriteToStream(fs);
+        fs.Close();
     }
 
     public void WriteToStream(Stream stream) {
+        stream.Write(Encoding.ASCII.GetBytes(FILE_HEADER_TEXT));
+        stream.Write(BitConverter.GetBytes((ulong)0)); // reserve the next 8 bytes
+
         stream.Write(BitConverter.GetBytes(TotalLength));
         var bytes_count = TotalLength / 8;
         var bits_count = TotalLength - bytes_count * 8;
@@ -107,19 +115,18 @@ public class BitBuilderBuffer {
     public void ReadFromDisk(string file_path) {
         Clear();
 
-        using var fr = new FileStream(file_path, FileMode.Open);
-
-        var text_header = new byte[FILE_HEADER_TEXT.Length];
-        fr.Read(text_header);
-        var header = new byte[8];
-        fr.Read(header);
-
-        if (Encoding.ASCII.GetString(text_header) != FILE_HEADER_TEXT) throw new FileLoadException("The specified file is not of the right type.");
-        ReadFromStream(fr);
-        fr.Close();
+        using var fs = new FileStream(file_path, FileMode.Open);
+        ReadFromStream(fs);
+        fs.Close();
     }
 
     public void ReadFromStream(Stream stream) {
+        var text_header = new byte[FILE_HEADER_TEXT.Length];
+        stream.Read(text_header);
+        var header = new byte[8];
+        stream.Read(header);
+        if (Encoding.ASCII.GetString(text_header) != FILE_HEADER_TEXT) throw new FileLoadException("The specified file is not of the right type.");
+
         var length_bytes = new byte[8];
         stream.Read(length_bytes);
         var total_length = BitConverter.ToInt64(length_bytes);

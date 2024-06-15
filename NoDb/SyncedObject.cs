@@ -30,7 +30,7 @@ public class SyncedObject<T> where T : class
             initialized_task.Wait();
             return _container.Value;
         }
-        private set => _container.Value = value;
+        set => _container.Value = value;
     }
     readonly Task initialized_task;
 
@@ -45,14 +45,10 @@ public class SyncedObject<T> where T : class
 
     public void WaitForLoad() => initialized_task.Wait();
     public Task WaitForLoadAsync() => initialized_task;
-    public void Save() {
-        _push_watcher.CheckForUpdate();
-    }
-
+    public void Save() => _push_watcher.CheckForUpdate();
+    
     async Task FullLoad(Syncer s) {
-        var buffer = await s.FullLoad(_container.Value) ?? throw new Exception("Failed to do initial load.");
-        if (buffer.TotalLength == 0) return;
-        Value = buffer.GetReader().Read<T>() ?? throw new Exception("Failed to parse read data from sync source.");
+        _container.Value = await s.FullLoad(_container.Value);
     }
 
     void OnPushDifference(DifferenceWatcherEventArgs<SyncedObjectContainer<T>> args) {

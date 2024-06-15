@@ -47,7 +47,7 @@ public class DifferenceWatcher<T> where T : class
                 current.Append(obj);
 
                 if (!current.Matches(_previous_value) || (_initial && _config.TriggerInitial)) {
-                    _sync_update.Invoke(obj, new() { Value = obj, Diff = new(_previous_value.GetReader(), current.GetReader(), _config.DiffMethod) });
+                    _sync_update.Invoke(obj, new() { Value = obj, Diff = new(_previous_value, current, _config.DiffMethod) });
                     _previous_value?.Clear();
                     _previous_value = current;
                     _initial = false;

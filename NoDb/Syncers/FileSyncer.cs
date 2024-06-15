@@ -8,19 +8,23 @@ public class FileSyncer : Syncer
 {
     FileSyncerConfig Config => (FileSyncerConfig)_config;
 
-    public FileSyncer(FileSyncerConfig config) : base(config) {
-        FileAttributes attr = File.GetAttributes(Config.FilePath);
-        if ((attr & FileAttributes.Directory) == FileAttributes.Directory)
-            throw new Exception($"Given file path for {nameof(FileSyncer)} is a directory.");
+    public FileSyncer(FileSyncerConfig config) : base(config) { }
 
-        Directory.CreateDirectory(Path.GetDirectoryName(Config.FilePath) ?? throw new Exception($"Failed to get directory name for {Config.FilePath}"));
-    }
-
-    public override async Task<BitBuilderBuffer> FullLoad<T>(T default_value)
-    {
-        var result = new BitBuilderBuffer();
-        await result.ReadFromDiskAsync(Config.FilePath);
-        return result;
+    public override async Task<T?> FullLoad<T>(T default_value) where T : default {
+        if (File.Exists(Config.FilePath)) {
+            var bb_result = new BitBuilderBuffer();
+            await bb_result.ReadFromDiskAsync(Config.FilePath);
+            var t_result = bb_result.GetReader().Read<T>();
+            return t_result;
+        }
+        else {
+            var directory = Path.GetDirectoryName(Config.FilePath);
+            if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
+            var bb = new BitBuilderBuffer();
+            bb.Append(default_value);
+            await bb.WriteToDiskAsync(Config.FilePath);
+            return default_value;
+        }
     }
 
     public override Task<BinaryDiff> Pull(BinaryDiff diff)
@@ -28,9 +32,9 @@ public class FileSyncer : Syncer
         return base.Pull(diff);
     }
 
-    public override Task<bool> Push(BinaryDiff diff)
-    {
-        return base.Push(diff);
+    public override async Task Push(BinaryDiff diff) {
+        using var fs = new FileStream(Config.FilePath, FileMode.Open);
+        await diff.ApplyToAsync(fs);
     }
 
     public override Task ClosingPush(BinaryDiff diff)

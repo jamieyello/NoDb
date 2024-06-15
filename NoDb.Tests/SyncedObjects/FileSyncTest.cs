@@ -2,17 +2,19 @@ using NoDb.Syncers;
 
 namespace NoDb.Tests.SyncedObjects;
 
-class TestClass {
-    public int Value { get; set; }
+class User {
+    public string Name { get; set; }
+    public int LoadCount { get; set; }
 }
 
 [TestClass]
 public class FileSyncTest {
-    readonly SyncedObject<TestClass> test = new(SyncerConfig.FileSync("delete_me.test"));
+    readonly SyncedObject<User> test = new(SyncerConfig.FileSync("delete_me.test"));
 
     [TestMethod]
     public void TestFileSync() {
-
-        //test.
+        test.Value ??= new() { Name = "Jamie" };
+        test.Value.LoadCount++;
+        test.Save();
     }
 }

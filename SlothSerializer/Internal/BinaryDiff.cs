@@ -1,4 +1,6 @@
-﻿namespace SlothSerializer.Internal;
+﻿using System.Text;
+
+namespace SlothSerializer.Internal;
 
 public class BinaryDiff
 {
@@ -8,27 +10,35 @@ public class BinaryDiff
     }
 
     DiffMethodType Method { get; set; }
-    ulong[] PatchData { get; set; }
+    byte[] PatchData { get; set; }
     ulong? Hash { get; set; }
 
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public BinaryDiff() { }
-    public BinaryDiff(BitBuilderReader old, BitBuilderReader new_, DiffMethodType method)
-    {
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+#pragma warning disable IDE0060 // Remove unused parameter
+    public BinaryDiff(BitBuilderBuffer old, BitBuilderBuffer new_, DiffMethodType method) {
+#pragma warning restore IDE0060 // Remove unused parameter
         Method = method;
-        if (Method == DiffMethodType.replace) PatchData = new_.ToArray();
+        var test = Encoding.ASCII.GetByteCount("test");
+
+        if (Method == DiffMethodType.replace) {
+            PatchData = new byte[new_.TotalStreamLengthBytes];
+            var ms = new MemoryStream(PatchData);
+            new_.WriteToStream(ms);
+        }
         else throw new NotImplementedException();
     }
 
-    public void Apply(ulong[] binary)
-    {
-        if (Method == DiffMethodType.replace) ApplyReplace(PatchData, binary);
+    public async Task ApplyToAsync(Stream stream) {
+        if (Method == DiffMethodType.replace) await ApplyReplace(PatchData, stream);
         else throw new NotImplementedException();
     }
 
-    static void ApplyReplace(ulong[] patch, ulong[] binary)
-    {
-        Array.Resize(ref binary, patch.Length);
-        patch.CopyTo(binary, 0);
+    static async Task ApplyReplace(byte[] patch, Stream stream) {
+        stream.Position = 0;
+        stream.SetLength(patch.Length);
+        await stream.WriteAsync(patch);
     }
 
     // https://stackoverflow.com/a/9545731
