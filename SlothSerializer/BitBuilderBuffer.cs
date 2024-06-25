@@ -8,34 +8,36 @@ namespace SlothSerializer;
 public class BitBuilderBuffer {
     const string FILE_HEADER_TEXT = "BitBuilder";
 
-    List<ulong> Bits { get; set; } = new(); // swap for lowmemlist when brave enough
-    public readonly BitBuilderWriter Writer; // note: the writer contains the final ulong.
+    List<ulong> _bits { get; set; } = new(); // swap for lowmemlist when brave enough
+    internal readonly BitBuilderWriter Writer; // note: the writer contains the final ulong.
 
-    /// <summary> Total size in bits. </summary>
-    public long TotalLength => 
-        Bits.Count * 64 + Writer.XPos;
+    /// <summary> Total size in bits. Does not divide by 8 evenly. </summary>
+    public long TotalLengthBits => 
+        _bits.Count * 64 + Writer.XPos;
 
     public long TotalStreamLengthBytes =>
         Encoding.ASCII.GetByteCount(FILE_HEADER_TEXT) + 
         8 + // header
         8 + // size
-        TotalLength / 8 + // bytes
-        ((TotalLength % 8) > 0 ? 1 : 0); // trailing byte
+        TotalLengthBits / 8 + // bytes
+        ((TotalLengthBits % 8) > 0 ? 1 : 0); // trailing byte
 
     public ulong this[int i] => 
-        i == Bits.Count ? Writer.Bits : Bits[i];
+        i == _bits.Count ? Writer.Bits : _bits[i];
 
     public BitBuilderBuffer() =>
-        Writer = new(Bits.Add);
+        Writer = new(_bits.Add);
 
     public string GetDebugString() =>
-        string.Join('\n', Bits.Select(ul => Convert.ToString((long)ul, 2).PadLeft(64, '0'))) +
-        $"\nWriter (Xpos={Writer.XPos}):\n{Convert.ToString((long)Writer.Bits, 2).PadLeft(64, '0')}";
+        string.Join('\n', _bits.Select(ul => Convert.ToString((long)ul, 2).PadLeft(64, '0'))) +
+        $"\nWriter (Xpos={Writer.XPos}):\n{Convert.ToString((long)Writer.Bits, 2).PadRight(64, '-')}";
 
     public BitBuilderReader GetReader() => 
-        new(i => this[i], () => TotalLength);
+        new(i => this[i], () => TotalLengthBits);
 
-    // Idk how useful this is. (very, never want to use the Writer property)
+    public BitBuilderStream GetStream() => 
+        new(this);
+
     public void Append(bool value) => Writer.Append(value);
     public void Append(sbyte value) => Writer.Append(value);
     public void Append(byte value) => Writer.Append(value);
@@ -67,12 +69,12 @@ public class BitBuilderBuffer {
     public void Append(IList<string> value) => Writer.Append(value);
 
     public void Clear() {
-        Bits.Clear();
+        _bits.Clear();
         Writer.Reset();
     }
 
     public bool Matches(BitBuilderBuffer b) =>
-        Writer.Bits == b.Writer.Bits && Bits.SequenceEqual(b.Bits);
+        Writer.Bits == b.Writer.Bits && _bits.SequenceEqual(b._bits);
 
     public async Task WriteToDiskAsync(string file_path) =>
         await Task.Run(() => WriteToDisk(file_path));
@@ -92,9 +94,9 @@ public class BitBuilderBuffer {
         stream.Write(Encoding.ASCII.GetBytes(FILE_HEADER_TEXT));
         stream.Write(BitConverter.GetBytes((ulong)0)); // reserve the next 8 bytes
 
-        stream.Write(BitConverter.GetBytes(TotalLength));
-        var bytes_count = TotalLength / 8;
-        var bits_count = TotalLength - bytes_count * 8;
+        stream.Write(BitConverter.GetBytes(TotalLengthBits));
+        var bytes_count = TotalLengthBits / 8;
+        var bits_count = TotalLengthBits - bytes_count * 8;
 
         var r = GetReader();
         stream.Write(r.ReadBytes(bytes_count));
@@ -127,13 +129,13 @@ public class BitBuilderBuffer {
         stream.Read(header);
         if (Encoding.ASCII.GetString(text_header) != FILE_HEADER_TEXT) throw new FileLoadException("The specified file is not of the right type.");
 
-        var length_bytes = new byte[8];
-        stream.Read(length_bytes);
-        var total_length = BitConverter.ToInt64(length_bytes);
-        var bytes_count = total_length / 8;
-        var bits_count = total_length - bytes_count * 8;
+        var total_length_bits_arr = new byte[8];
+        stream.Read(total_length_bits_arr);
+        var total_length_bits = BitConverter.ToInt64(total_length_bits_arr);
+        var bytes_count = total_length_bits / 8;
+        var bits_count = total_length_bits - bytes_count * 8;
 
-        var buffer = new byte[bytes_count];
+        var buffer = new byte[bytes_count + (bits_count > 0 ? 1 : 0)];
         stream.Read(buffer);
         Append(buffer); // why do interfaces have to be slow? rather speed this up instead of exposing something internal
 

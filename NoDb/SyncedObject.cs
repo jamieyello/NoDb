@@ -4,20 +4,18 @@ using NoDb.Syncers;
 namespace NoDb;
 
 /// <summary> This allows references to be kept. </summary>
-internal class SyncedObjectContainer<T> where T : class {
+internal class SyncedObjectContainer<T> {
     public T? Value { get; set; }
 
     public SyncedObjectContainer(T? value) => 
         Value = value;
 }
 
-// Is there any reason for this not to allow structs??
-
 // loading: implemented, not tested
 // pushing: implemented, not tested
 // pulling: not tested
 // closing: not implemented
-public class SyncedObject<T> where T : class
+public class SyncedObject<T>
 {
     readonly List<Syncer> _syncers = new();
 #pragma warning disable IDE0052 // Remove unread private members
@@ -34,7 +32,7 @@ public class SyncedObject<T> where T : class
     }
     readonly Task initialized_task;
 
-    public SyncedObject(SyncerConfig config, T? default_value = null, DifferenceWatcherConfig? auto_save_options = null) {
+    public SyncedObject(SyncerConfig config, T? default_value = default, DifferenceWatcherConfig? auto_save_options = null) {
         _container = new(default_value);
         _syncers.AddRange(config.GetSyncers());
         _push_watcher = new DifferenceWatcher<SyncedObjectContainer<T>>(_container, OnPushDifference, auto_save_options ?? new());
