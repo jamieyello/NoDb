@@ -1,12 +1,10 @@
-using Newtonsoft.Json;
 using SlothSerializer;
 using SlothSerializer.Internal;
-using static SlothSockets.Tests.SerializerTests;
 
 namespace SlothSockets.Tests;
 
 [TestClass]
-public class Benchmarks
+public class CollectionBenchmarks
 {
     const int COUNT = 1000000;
 
@@ -36,25 +34,5 @@ public class Benchmarks
     {
         var target = new byte[COUNT];
         for (int i = 0; i < COUNT; i++) target[i] = 0;
-    }
-
-    [TestMethod]
-    public void BBTest()
-    {
-        var bb = new BitBuilderBuffer();
-        var test = new TestClass4();
-        for (int i = 0;i < COUNT; i++) {
-            bb.Append(test);
-        }
-    }
-
-    [TestMethod]
-    public void JsonTest()
-    {
-        var test = new TestClass4();
-        for (int i = 0; i < COUNT; i++)
-        {
-            JsonConvert.SerializeObject(test);
-        }
     }
 }
