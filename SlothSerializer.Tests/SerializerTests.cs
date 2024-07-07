@@ -3,7 +3,7 @@ using SlothSerializer;
 using SlothSerializer.Tests.TestClasses;
 using System.Diagnostics;
 
-namespace SlothSockets.Tests
+namespace SlothSerializer.Tests
 {
     [TestClass]
     public class SerializerTests

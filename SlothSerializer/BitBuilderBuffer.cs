@@ -30,7 +30,7 @@ public class BitBuilderBuffer {
 
     public string GetDebugString() =>
         string.Join('\n', _bits.Select(ul => Convert.ToString((long)ul, 2).PadLeft(64, '0'))) +
-        $"\nWriter (Xpos={Writer.XPos}):\n{Convert.ToString((long)Writer.Bits, 2).PadRight(64, '-')}";
+        $"\nWriter (Xpos={Writer.XPos}):\n{Convert.ToString((long)Writer.Bits, 2)[..Writer.XPos].PadRight(64, '-')}";
 
     public BitBuilderReader GetReader() => 
         new(i => this[i], () => TotalLengthBits);
@@ -93,7 +93,6 @@ public class BitBuilderBuffer {
     public void WriteToStream(Stream stream) {
         stream.Write(Encoding.ASCII.GetBytes(FILE_HEADER_TEXT));
         stream.Write(BitConverter.GetBytes((ulong)0)); // reserve the next 8 bytes
-
         stream.Write(BitConverter.GetBytes(TotalLengthBits));
         var bytes_count = TotalLengthBits / 8;
         var bits_count = TotalLengthBits - bytes_count * 8;
@@ -109,6 +108,7 @@ public class BitBuilderBuffer {
         }
         hanging_bits_byte <<= (byte)(8 - bits_count);
         stream.WriteByte(hanging_bits_byte);
+        stream.Flush();
     }
 
     public async Task ReadFromDiskAsync(string file_path) =>
@@ -125,27 +125,31 @@ public class BitBuilderBuffer {
     public void ReadFromStream(Stream stream) {
         var text_header = new byte[FILE_HEADER_TEXT.Length];
         stream.Read(text_header);
+        var text_header_str = Encoding.ASCII.GetString(text_header);
+
         var header = new byte[8];
         stream.Read(header);
-        if (Encoding.ASCII.GetString(text_header) != FILE_HEADER_TEXT) throw new FileLoadException("The specified file is not of the right type.");
 
         var total_length_bits_arr = new byte[8];
         stream.Read(total_length_bits_arr);
         var total_length_bits = BitConverter.ToInt64(total_length_bits_arr);
+
+        if (text_header_str != FILE_HEADER_TEXT) throw new DataMisalignedException("Invalid header from data stream.");
+
         var bytes_count = total_length_bits / 8;
         var bits_count = total_length_bits - bytes_count * 8;
 
-        var buffer = new byte[bytes_count + (bits_count > 0 ? 1 : 0)];
+        var buffer = new byte[bytes_count];
         stream.Read(buffer);
         Append(buffer); // why do interfaces have to be slow? rather speed this up instead of exposing something internal
 
         if (bits_count > 0) {
             var hanging_bits = (byte)stream.ReadByte();
-            Debug.WriteLine(GetDebugString());
+            //Debug.WriteLine(GetDebugString());
             for (int i = 0; i < bits_count; i++) {
                 Append((hanging_bits & (128 >> i)) > 0);
             }
-            Debug.WriteLine(GetDebugString());
+            //Debug.WriteLine(GetDebugString());
         }
     }
 }

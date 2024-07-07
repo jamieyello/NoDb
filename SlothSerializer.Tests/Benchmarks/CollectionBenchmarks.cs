@@ -1,12 +1,11 @@
-using SlothSerializer;
 using SlothSerializer.Internal;
 
-namespace SlothSockets.Tests;
+namespace SlothSerializer.Tests.Benchmarks;
 
 [TestClass]
 public class CollectionBenchmarks
 {
-    const int COUNT = 1000000;
+    const int COUNT = 10_000_000;
 
     [TestMethod]
     public void WriteBitBuilder()

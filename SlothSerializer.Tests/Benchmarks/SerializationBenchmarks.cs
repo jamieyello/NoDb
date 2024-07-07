@@ -5,10 +5,10 @@ namespace SlothSerializer.Tests.Benchmarks;
 
 [TestClass]
 public class SerializationBenchmarks {
-    const int COUNT = 1000000;
+    const int COUNT = 1_000_000;
     
     [TestMethod]
-    public void BBTest()
+    public void ObjectSerializationBitBuilder()
     {
         var bb = new BitBuilderBuffer();
         var test = new TestClass4();
@@ -18,7 +18,7 @@ public class SerializationBenchmarks {
     }
 
     [TestMethod]
-    public void JsonTest()
+    public void ObjectSerializationJson()
     {
         var test = new TestClass4();
         for (int i = 0; i < COUNT; i++)

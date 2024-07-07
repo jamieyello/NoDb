@@ -1,6 +1,6 @@
 ﻿using SlothSerializer;
 
-namespace SlothSockets.Tests
+namespace SlothSerializer.Tests
 {
     [TestClass]
     public class BitBuilderIntegrity
