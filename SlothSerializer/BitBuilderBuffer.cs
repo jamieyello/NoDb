@@ -30,7 +30,7 @@ public class BitBuilderBuffer {
 
     public string GetDebugString() =>
         string.Join('\n', _bits.Select(ul => Convert.ToString((long)ul, 2).PadLeft(64, '0'))) +
-        $"\nWriter (Xpos={Writer.XPos}):\n{Convert.ToString((long)Writer.Bits, 2)[..Writer.XPos].PadRight(64, '-')}";
+        $"\nWriter (Xpos={Writer.XPos}):\n{Convert.ToString((long)Writer.Bits, 2).PadRight(64, '0')[..Writer.XPos].PadRight(64, '-')}";
 
     public BitBuilderReader GetReader() => 
         new(i => this[i], () => TotalLengthBits);
@@ -145,11 +145,9 @@ public class BitBuilderBuffer {
 
         if (bits_count > 0) {
             var hanging_bits = (byte)stream.ReadByte();
-            //Debug.WriteLine(GetDebugString());
             for (int i = 0; i < bits_count; i++) {
                 Append((hanging_bits & (128 >> i)) > 0);
             }
-            //Debug.WriteLine(GetDebugString());
         }
     }
 }
