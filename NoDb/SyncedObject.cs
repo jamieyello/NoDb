@@ -3,14 +3,6 @@ using NoDb.Syncers;
 
 namespace NoDb;
 
-/// <summary> This allows references to be kept. </summary>
-internal class SyncedObjectContainer<T> {
-    public T? Value { get; set; }
-
-    public SyncedObjectContainer(T? value) => 
-        Value = value;
-}
-
 // loading: implemented, not tested
 // pushing: implemented, not tested
 // pulling: not tested
@@ -47,6 +39,11 @@ public class SyncedObject<T>
     
     async Task FullLoad(Syncer s) {
         _container.Value = await s.FullLoad(_container.Value);
+    }
+
+    public async Task TestingForceFullLoad() {
+        var loader = _syncers.Where(x => x.Load).FirstOrDefault();
+        await (loader != null ? FullLoad(loader) : Task.CompletedTask);
     }
 
     void OnPushDifference(DifferenceWatcherEventArgs<SyncedObjectContainer<T>> args) {

@@ -1,19 +1,22 @@
 ﻿namespace NoDb.Syncers;
 
-// make this abstract?
+// todo: make this abstract somehow
 public class SyncerConfig
 {
     List<SyncerConfig> Configs { get; init; } = new();
     /// <summary> If set to true, this will load the object from the source on initialization. </summary>
-    public bool Load { get; set; }
+    public virtual bool Load { get; set; }
     public virtual bool SupportsPull => throw new NotImplementedException();
 
-    internal SyncerConfig() { }
+    protected SyncerConfig() { }
     SyncerConfig(IEnumerable<SyncerConfig> configs, SyncerConfig add) =>
         Configs.AddRange(configs.Append(add));
 
     #region Helper Functions
-    /// <summary>Will create a <see cref="FileSyncer"/> that will load and keep this object syncronyzed to an individual file on the drive.</summary>
+    public SyncerConfig WithSyncer(SyncerConfig config) =>
+        new(Configs, config);
+
+    /// <summary> Will create a <see cref="FileSyncer"/> that will load and keep this object syncronyzed to an individual file on the drive. </summary>
     public static SyncerConfig FileSync(string file_path) =>
         new FileSyncerConfig { FilePath = file_path };
     /// <summary> Returns a new <see cref="SyncerConfig"/> with settings for a <see cref="FileSyncer"/> appended. </summary>
@@ -29,7 +32,7 @@ public class SyncerConfig
         new(Configs, new NoDbSyncerConfig { ConnectionString = connection_string });
     #endregion
 
-    internal virtual Syncer GetSyncer() => 
+    protected virtual Syncer GetSyncer() => 
         throw new NotImplementedException();
 
     public IEnumerable<Syncer> GetSyncers() =>

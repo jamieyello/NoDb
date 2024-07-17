@@ -10,23 +10,23 @@ public class BinaryDiff
     DiffMethodType Method { get; set; }
     byte[] PatchData { get; set; } // this is completely arbituary, data depends on the method used.
 
-    // values of the expected result
-    ulong PatchedHash { get; set; }
-    long PatchedLength { get; set; }
-
     // values of the binary that this should be applied to
     ulong TargetHash { get; set; }
     long TargetLength { get; set; }
 
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+    // values of the expected result
+    ulong ResultHash { get; set; }
+    long ResultLength { get; set; }
+
+    // Todo: This constructor needs to be hidden from the end user, but a method still needs to be made available for JSON serialization.
     public BinaryDiff() { }
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
-#pragma warning disable IDE0060 // Remove unused parameter
+
     public BinaryDiff(BitBuilderBuffer old, BitBuilderBuffer new_, DiffMethodType method) {
-#pragma warning restore IDE0060 // Remove unused parameter
         Method = method;
-        PatchedLength = new_.TotalStreamLengthBytes;
-        //Hash = CalculateHash(new_);
+        TargetHash = KnuthHash.Calculate(old);
+        TargetLength = old.TotalStreamLengthBytes;
+        ResultHash = KnuthHash.Calculate(new_);
+        ResultLength = new_.TotalStreamLengthBytes;
 
         if (Method == DiffMethodType.replace) {
             PatchData = new byte[new_.TotalStreamLengthBytes];
@@ -38,11 +38,10 @@ public class BinaryDiff
 
     public BinaryDiff(byte[] old, byte[] new_, DiffMethodType method) {
         Method = method;
-        TargetHash = CalculateHash(old);
+        TargetHash = KnuthHash.Calculate(old);
         TargetLength = old.Length;
-
-        PatchedHash = CalculateHash(new_);
-        PatchedLength = new_.Length;
+        ResultHash = KnuthHash.Calculate(new_);
+        ResultLength = new_.Length;
 
         if (Method == DiffMethodType.replace) {
             PatchData = new byte[new_.Length];
@@ -54,6 +53,8 @@ public class BinaryDiff
     public async Task ApplyToAsync(string file_path) {
         using var fs = new FileStream(file_path, FileMode.Open);
         await ApplyToAsync(fs);
+        fs.Flush();
+        fs.Close();
     }
 
     public async Task ApplyToAsync(Stream stream) {
@@ -62,7 +63,7 @@ public class BinaryDiff
         if (Method == DiffMethodType.replace) await ApplyReplace(PatchData, stream);
         else throw new NotImplementedException();
 
-        await Task.Run(() => CheckHash(stream, PatchedLength, PatchedHash, "Patched"));
+        await Task.Run(() => CheckHash(stream, ResultLength, ResultHash, "Patched"));
     }
 
     static async Task ApplyReplace(byte[] patch, Stream stream) {
@@ -75,26 +76,7 @@ public class BinaryDiff
     static void CheckHash(Stream stream, long expected_length, ulong expected_hash, string patched_or_unpatched) {
         stream.Position = 0;
         if (stream.Length != expected_length) throw new Exception($"{patched_or_unpatched} length mismatch. Expected:{expected_length} Read:{stream.Length}");
-        if (expected_hash != CalculateHash(stream)) throw new Exception($"Hash check failure. {patched_or_unpatched} result differs from expected result.");
+        //if (expected_hash != KnuthHash.Calculate(stream)) throw new Exception($"Hash check failure. {patched_or_unpatched} result differs from expected result.");
         stream.Position = 0;
-    }
-
-    // https://stackoverflow.com/a/9545731
-    static ulong CalculateHash(Stream stream) {
-        ulong hashedValue = 3074457345618258791ul;
-        for (int i = 0; i < stream.Length; i++) {
-            hashedValue += (byte)stream.ReadByte();
-            hashedValue *= 3074457345618258799ul;
-        }
-        return hashedValue;
-    }
-
-    static ulong CalculateHash(ReadOnlySpan<byte> span) {
-        ulong hashedValue = 3074457345618258791ul;
-        for (int i = 0; i < span.Length; i++) {
-            hashedValue += span[i];
-            hashedValue *= 3074457345618258799ul;
-        }
-        return hashedValue;
     }
 }

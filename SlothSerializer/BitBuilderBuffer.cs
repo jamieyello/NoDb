@@ -11,7 +11,7 @@ public class BitBuilderBuffer {
     List<ulong> _bits { get; set; } = new(); // swap for lowmemlist when brave enough
     internal readonly BitBuilderWriter Writer; // note: the writer contains the final ulong.
 
-    /// <summary> Total size in bits. Does not divide by 8 evenly. </summary>
+    /// <summary> Total size in bits. Does not always divide by 8 evenly. </summary>
     public long TotalLengthBits => 
         _bits.Count * 64 + Writer.XPos;
 
@@ -21,6 +21,8 @@ public class BitBuilderBuffer {
         8 + // size
         TotalLengthBits / 8 + // bytes
         ((TotalLengthBits % 8) > 0 ? 1 : 0); // trailing byte
+
+    ulong HeaderData => 0ul;
 
     public ulong this[int i] => 
         i == _bits.Count ? Writer.Bits : _bits[i];
@@ -92,7 +94,7 @@ public class BitBuilderBuffer {
 
     public void WriteToStream(Stream stream) {
         stream.Write(Encoding.ASCII.GetBytes(FILE_HEADER_TEXT));
-        stream.Write(BitConverter.GetBytes((ulong)0)); // reserve the next 8 bytes
+        stream.Write(BitConverter.GetBytes(HeaderData));
         stream.Write(BitConverter.GetBytes(TotalLengthBits));
         var bytes_count = TotalLengthBits / 8;
         var bits_count = TotalLengthBits - bytes_count * 8;
@@ -148,6 +150,29 @@ public class BitBuilderBuffer {
             for (int i = 0; i < bits_count; i++) {
                 Append((hanging_bits & (128 >> i)) > 0);
             }
+        }
+    }
+
+    // Todo: throw exception if a write method is accessed while this is happening
+    public IEnumerable<byte> EnumerateAsBytes() {
+        foreach (var b in Encoding.ASCII.GetBytes(FILE_HEADER_TEXT)) yield return b;
+        foreach (var b in BitConverter.GetBytes(HeaderData)) yield return b;
+        foreach (var b in BitConverter.GetBytes(TotalLengthBits)) yield return b;
+
+        foreach (var ul in _bits) {
+            yield return (byte)(ul >> 56);
+            yield return (byte)(ul >> 48);
+            yield return (byte)(ul >> 40);
+            yield return (byte)(ul >> 32);
+            yield return (byte)(ul >> 24);
+            yield return (byte)(ul >> 16);
+            yield return (byte)(ul >> 8);
+            yield return (byte)ul;
+        }
+
+        var hanging_bit_count = Writer.XPos % 8 > 0 ? 1 : 0;
+        for (int i = 0; i < Writer.XPos / 8 + hanging_bit_count; i++) {
+            yield return (byte)(Writer.Bits >> 56 - i * 8);
         }
     }
 }

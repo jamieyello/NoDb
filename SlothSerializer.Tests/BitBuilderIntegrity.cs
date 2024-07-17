@@ -46,5 +46,27 @@ namespace SlothSerializer.Tests
             var s = reader.ReadString();
             Assert.AreEqual(message, s);
         }
+
+        [TestMethod]
+        public void IntegrityTestEnumerate() {
+            var message = "Wowowowow.";
+            var bb = new BitBuilderBuffer();
+            bb.Append(true);
+            bb.Append(message);
+
+            var ms = new MemoryStream();
+            foreach (var b in bb.EnumerateAsBytes()) {
+                ms.WriteByte(b);
+            }
+            ms.Position = 0;
+            var bb2 = new BitBuilderBuffer();
+            bb2.ReadFromStream(ms);
+
+            var reader = bb2.GetReader();
+
+            reader.ReadBool();
+            var s = reader.ReadString();
+            Assert.AreEqual(message, s);
+        }
     }
 }
