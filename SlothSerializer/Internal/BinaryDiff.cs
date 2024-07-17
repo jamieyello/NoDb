@@ -19,6 +19,7 @@ public class BinaryDiff
     long ResultLength { get; set; }
 
     // Todo: This constructor needs to be hidden from the end user, but a method still needs to be made available for JSON serialization.
+    [Obsolete("Don't use this manually.")]
     public BinaryDiff() { }
 
     public BinaryDiff(BitBuilderBuffer old, BitBuilderBuffer new_, DiffMethodType method) {

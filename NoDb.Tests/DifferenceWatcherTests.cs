@@ -1,10 +1,10 @@
 ﻿using NoDb.Difference;
 using SlothSerializer;
 
-namespace NoDb.Tests.DW;
+namespace NoDb.Tests.TestData;
 
 [TestClass]
-public class DWBasic
+public class DifferenceWatcherTests
 {
     [TestMethod]
     public void TestDW()
