@@ -62,9 +62,9 @@ public class StreamWriteTests {
 
         Debug.WriteLine("RESULTS-- (original vs read)");
         Debug.WriteLine("");
-        Debug.WriteLine(buffer.GetDebugString());
+        Debug.WriteLine(buffer.DebugString);
         Debug.WriteLine("");
-        Debug.WriteLine(bb_read.GetDebugString());
+        Debug.WriteLine(bb_read.DebugString);
         Debug.WriteLine("--");
         Assert.IsTrue(buffer.Matches(bb_read), "Error de-serializing file.");
         return bb_read;

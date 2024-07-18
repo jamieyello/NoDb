@@ -1,7 +1,7 @@
 ﻿using NoDb.Difference;
 using SlothSerializer;
 
-namespace NoDb.Tests.TestData;
+namespace NoDb.Tests;
 
 [TestClass]
 public class DifferenceWatcherTests

@@ -35,7 +35,7 @@ public static class Program {
             Console.ForegroundColor = HEADER_COLOR;
             Console.WriteLine("Parsed data;");
             Console.ResetColor();
-            Console.WriteLine(bb.GetDebugString());
+            Console.WriteLine(bb.DebugString);
             return;
         }
 

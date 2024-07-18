@@ -11,6 +11,6 @@ public class FileSyncerConfig : SyncerConfig
         Load = true;
     }
 
-    internal override Syncer GetSyncer() => 
+    protected override Syncer GetSyncer() => 
         new FileSyncer(this);
 }

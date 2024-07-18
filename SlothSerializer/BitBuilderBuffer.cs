@@ -30,7 +30,7 @@ public class BitBuilderBuffer {
     public BitBuilderBuffer() =>
         Writer = new(_bits.Add);
 
-    public string GetDebugString() =>
+    public string DebugString =>
         string.Join('\n', _bits.Select(ul => Convert.ToString((long)ul, 2).PadLeft(64, '0'))) +
         $"\nWriter (Xpos={Writer.XPos}):\n{Convert.ToString((long)Writer.Bits, 2).PadRight(64, '0')[..Writer.XPos].PadRight(64, '-')}";
 

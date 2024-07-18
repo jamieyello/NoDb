@@ -37,7 +37,7 @@ namespace SlothSerializer.Tests
             original.SetTestValue3(3);
             original.SetTestValue4(4);
             bb.Append(original, SerializeMode.Properties);
-            Debug.WriteLine(bb.GetDebugString());
+            Debug.WriteLine(bb.DebugString);
 
             var read = bb.GetReader().Read<TestPropClass>(SerializeMode.Properties)
                 ?? throw new Exception("Read null.");
@@ -57,7 +57,7 @@ namespace SlothSerializer.Tests
                 test_string = "wowowow",
             };
             bb.Append(original, SerializeMode.Fields);
-            Debug.WriteLine(bb.GetDebugString());
+            Debug.WriteLine(bb.DebugString);
 
             var read = bb.GetReader().Read<TestClass1>(SerializeMode.Fields);
             Assert.AreEqual(original, read);
@@ -82,7 +82,7 @@ namespace SlothSerializer.Tests
 
             };
             bb.Append(original, SerializeMode.Fields);
-            Debug.WriteLine(bb.GetDebugString());
+            Debug.WriteLine(bb.DebugString);
 
             var read = bb.GetReader().Read<TestClass2>(SerializeMode.Fields)
                 ?? throw new Exception("Read null.");
@@ -100,7 +100,7 @@ namespace SlothSerializer.Tests
                 test_values = [value, value, value,]
             };
             bb.Append(original, SerializeMode.Fields);
-            Debug.WriteLine(bb.GetDebugString());
+            Debug.WriteLine(bb.DebugString);
 
             var read = bb.GetReader().Read<TestClass3>(SerializeMode.Fields)
                 ?? throw new Exception("Read null.");
@@ -123,7 +123,7 @@ namespace SlothSerializer.Tests
                 test_enum = TestClass4.TestEnum.second
             };
             bb.Append(original, SerializeMode.Fields);
-            Debug.WriteLine(bb.GetDebugString());
+            Debug.WriteLine(bb.DebugString);
 
             var read = bb.GetReader().Read<TestClass4>(SerializeMode.Fields)
                 ?? throw new Exception("Read null.");
@@ -141,7 +141,7 @@ namespace SlothSerializer.Tests
                 test_values = [value, value, value,]
             };
             bb.Append(original, SerializeMode.Fields);
-            Debug.WriteLine(bb.GetDebugString());
+            Debug.WriteLine(bb.DebugString);
 
             var read = bb.GetReader().Read<TestClass5>(SerializeMode.Fields)
                 ?? throw new Exception("Read null.");
