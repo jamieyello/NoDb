@@ -11,10 +11,11 @@ public class SyncedObject<T>
 {
     readonly List<Syncer> _syncers = new();
 #pragma warning disable IDE0052 // Remove unread private members
-    readonly DifferenceWatcher<SyncedObjectContainer<T>> _push_watcher;
+    readonly DifferenceWatcher<T> _push_watcher;
 #pragma warning restore IDE0052 // Remove unread private members
 
     readonly SyncedObjectContainer<T> _container;
+
     public T? Value { 
         get {
             initialized_task.Wait();
@@ -27,7 +28,7 @@ public class SyncedObject<T>
     public SyncedObject(SyncerConfig config, T? default_value = default, DifferenceWatcherConfig? auto_save_options = null) {
         _container = new(default_value);
         _syncers.AddRange(config.GetSyncers());
-        _push_watcher = new DifferenceWatcher<SyncedObjectContainer<T>>(_container, OnPushDifference, auto_save_options ?? new());
+        _push_watcher = new DifferenceWatcher<T>(_container, OnPushDifference, auto_save_options ?? new());
 
         var loader = _syncers.Where(x => x.Load).FirstOrDefault();
         initialized_task = loader != null ? FullLoad(loader) : Task.CompletedTask;
@@ -46,8 +47,13 @@ public class SyncedObject<T>
         await (loader != null ? FullLoad(loader) : Task.CompletedTask);
     }
 
-    void OnPushDifference(DifferenceWatcherEventArgs<SyncedObjectContainer<T>> args) {
+    void OnPushDifference(DifferenceWatcherEventArgs<T> args) {
         var tasks = Task.WhenAll(_syncers.Select(x => x.Push(args.Diff)));
         tasks.Wait();
     }
+
+    public IEnumerable<Syncer> GetSyncers() => _syncers.AsEnumerable();
+    /// <summary> Get all attached syncers of the specified type. </summary>
+    public ST[] GetSyncers<ST>() where ST : Syncer => 
+        _syncers.Where(x => x.GetType() == typeof(ST)).Select(x => (ST)x).ToArray();
 }

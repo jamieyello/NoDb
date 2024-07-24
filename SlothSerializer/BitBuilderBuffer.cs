@@ -113,6 +113,11 @@ public class BitBuilderBuffer {
         stream.Flush();
     }
 
+    public void ReadFromArray(byte[] serialized_bitbuilder) {
+        using var ms = new MemoryStream(serialized_bitbuilder);
+        ReadFromStream(ms);
+    }
+
     public async Task ReadFromDiskAsync(string file_path) =>
         await Task.Run(() => ReadFromDisk(file_path));
 

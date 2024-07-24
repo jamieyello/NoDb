@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using NoDb.Syncers;
 using SlothSerializer;
 using SlothSerializer.Internal;
@@ -10,10 +9,11 @@ public class DebugSyncer<DebugT> : Syncer
 {
     int full_load_count = 0;
     int push_count = 0;
-    readonly byte[] bb_array;
+    readonly MemoryStream bb_ms = new();
+    public SyncedObject<DebugT> InspectSyncer { get; set; }
 
     public DebugSyncer(DebugSyncerConfig<DebugT> config) : base(config) {
-        bb_array = ToBitBuilderArray(config.DefaultValue, config.SerializeMode);
+        ToBitBuilderStream(config.DefaultValue, bb_ms, config.SerializeMode);
     }
 
     DebugSyncerConfig<DebugT> DebugSyncerConfig => (DebugSyncerConfig<DebugT>)_config;
@@ -21,7 +21,7 @@ public class DebugSyncer<DebugT> : Syncer
     public override Task<T?> FullLoad<T>(T default_value) where T : default {
         Inspect($"Full load #{++full_load_count} inspection.");
         return Task.Run(() => {
-            var value = FromBitBuilderArray<T>(bb_array, DebugSyncerConfig.SerializeMode);
+            var value = FromBitBuilderStream<T>(bb_ms, DebugSyncerConfig.SerializeMode);
             return value;
         });
     }
@@ -32,37 +32,36 @@ public class DebugSyncer<DebugT> : Syncer
 
     public override async Task Push(BinaryDiff diff) {
         Inspect($"Pre-push #{++push_count} inspection.");
-        using var ms = new MemoryStream(bb_array);
-        await diff.ApplyToAsync(ms);
+        await diff.ApplyToAsync(bb_ms);
         Inspect($"Post-push #{push_count} inspection.");
     }
 
     public override Task ClosingPush(BinaryDiff diff) => 
         Push(diff);
     
-    static byte[] ToBitBuilderArray(object? value, SerializeMode mode) {
+    static void ToBitBuilderStream(object? value, MemoryStream stream, SerializeMode mode) {
         var bb = new BitBuilderBuffer();
         bb.Append(value, mode);
-        return bb.EnumerateAsBytes().ToArray();
+        stream.Position = 0;
+        stream.SetLength(0);
+        bb.WriteToStream(stream);
+        stream.Position = 0;
     }
 
-    static T? FromBitBuilderArray<T>(byte[] array, SerializeMode mode) {
-        using var ms = new MemoryStream(array);
+    static T? FromBitBuilderStream<T>(MemoryStream stream, SerializeMode mode) {
         var bb = new BitBuilderBuffer();
-        bb.ReadFromStream(ms);
+        stream.Position = 0;
+        bb.ReadFromStream(stream);
+        stream.Position = 0;
         return bb.GetReader().Read<T>(mode);
     }
 
     void Inspect(string message) {
         if (DebugSyncerConfig.InspectMethod == null) return;
-        using var ms = new MemoryStream(bb_array);
         var bb = new BitBuilderBuffer();
-        bb.ReadFromStream(ms);
+        bb_ms.Position = 0;
+        bb.ReadFromStream(bb_ms);
+        bb_ms.Position = 0;
         DebugSyncerConfig.InspectMethod(message, bb);
-    }
-
-    private string GetDebuggerDisplay()
-    {
-        return ToString();
     }
 }

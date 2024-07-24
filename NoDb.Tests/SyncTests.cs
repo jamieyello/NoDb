@@ -19,6 +19,8 @@ public class SyncTests {
 
         var config = new DebugSyncerConfig<int>(3, inspect);
         var so = new SyncedObject<int>(config);
+        var syncer = so.GetSyncers<DebugSyncer<int>>();
+        syncer.First().InspectSyncer = so;
         await TestSyncIntIncrement(so);
     }
 
