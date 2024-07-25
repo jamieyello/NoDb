@@ -19,7 +19,7 @@ public class ProgramState {
         UserData.Sync();
     }
 
-    // It also supports using IDisposable to sync your files.
+    // It also supports using IDisposable to sync your data on disposal.
     public static void TestObjectFileSync() {
         using var user_data = new FileObject<User>("TestObjectFileSync.deleteme", new() { Name = "Jamie"});
         user_data.Value.LoadCount++;
