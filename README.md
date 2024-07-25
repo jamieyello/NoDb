@@ -18,11 +18,11 @@ public class ProgramState {
         // Call whenever you want to save the data.
         UserData.Sync();
     }
-}
 
-// It also supports using IDisposable to sync your files.
-public static void TestObjectFileSync() {
-    using var so = new FileObject<User>("TestObjectFileSync.deleteme", new() { Name = "Jamie"});
-    so.Value.LoadCount++;
+    // It also supports using IDisposable to sync your files.
+    public static void TestObjectFileSync() {
+        using var user_data = new FileObject<User>("TestObjectFileSync.deleteme", new() { Name = "Jamie"});
+        user_data.Value.LoadCount++;
+    }
 }
 ```
