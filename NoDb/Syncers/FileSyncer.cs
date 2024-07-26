@@ -11,6 +11,7 @@ public class FileSyncer : Syncer
     public FileSyncer(FileSyncerConfig config) : base(config) { }
 
     public override async Task<T?> FullLoad<T>(T default_value) where T : default {
+        if (Config.DeleteExisting && File.Exists(Config.FilePath)) File.Delete(Config.FilePath);
         if (File.Exists(Config.FilePath)) {
             var bb_result = new BitBuilderBuffer();
             await bb_result.ReadFromDiskAsync(Config.FilePath);

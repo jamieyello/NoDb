@@ -7,7 +7,7 @@ namespace NoDb;
 // pushing: implemented, not tested
 // pulling: not tested
 // closing: not implemented
-public class SyncedObject<T>
+public class SyncedObject<T> : IDisposable
 {
     readonly List<Syncer> _syncers = new();
 #pragma warning disable IDE0052 // Remove unread private members
@@ -15,6 +15,8 @@ public class SyncedObject<T>
 #pragma warning restore IDE0052 // Remove unread private members
 
     readonly SyncedObjectContainer<T> _container;
+    readonly Task initialized_task;
+    private bool disposedValue;
 
     public T? Value { 
         get {
@@ -23,7 +25,6 @@ public class SyncedObject<T>
         }
         set => _container.Value = value;
     }
-    readonly Task initialized_task;
 
     public SyncedObject(SyncerConfig config, T? default_value = default, DifferenceWatcherConfig? auto_save_options = null) {
         _container = new(default_value);
@@ -34,9 +35,27 @@ public class SyncedObject<T>
         initialized_task = loader != null ? FullLoad(loader) : Task.CompletedTask;
     }
 
-    public void WaitForLoad() => initialized_task.Wait();
-    public Task WaitForLoadAsync() => initialized_task;
-    public void Save() => _push_watcher.CheckForUpdate();
+    public SyncedObject<T> Loaded() {
+        initialized_task.Wait();
+        return this;
+    } 
+
+    public async Task<SyncedObject<T>> LoadedAsync() {
+        await initialized_task;
+        return this;
+    } 
+
+    public T? WaitForLoad() {
+        initialized_task.Wait();
+        return Value;
+    } 
+
+    public async Task<T?> WaitForLoadAsync() {
+        await initialized_task;
+        return Value;
+    }
+
+    public void Sync() => _push_watcher.CheckForUpdate();
     
     async Task FullLoad(Syncer s) {
         _container.Value = await s.FullLoad(_container.Value);
@@ -56,4 +75,26 @@ public class SyncedObject<T>
     /// <summary> Get all attached syncers of the specified type. </summary>
     public ST[] GetSyncers<ST>() where ST : Syncer => 
         _syncers.Where(x => x.GetType() == typeof(ST)).Select(x => (ST)x).ToArray();
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposedValue)
+        {
+            if (disposing)
+            {
+                _push_watcher.Stop();
+                _push_watcher.CheckForUpdate();
+                _push_watcher.Dispose();
+            }
+
+            disposedValue = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
 }

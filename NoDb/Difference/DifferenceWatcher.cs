@@ -6,7 +6,7 @@ namespace NoDb.Difference;
 /// Watches an object at regular intervals and triggers a method when it changes. 
 /// Uses serialization to check for differences, does not use any other kind of comparer.
 /// </summary>
-internal class DifferenceWatcher<T>
+internal class DifferenceWatcher<T> : IDisposable
 {
     readonly SyncedObjectContainer<T> _container;
     readonly DifferenceWatcherConfig _config;
@@ -17,6 +17,7 @@ internal class DifferenceWatcher<T>
     readonly BitBuilderBuffer _previous_value = new();
     readonly BitBuilderBuffer _current_value = new();
     bool _initial = true;
+    private bool disposedValue;
 
     public DifferenceWatcher(SyncedObjectContainer<T> _container, Action<DifferenceWatcherEventArgs<T>> update_event_callback, DifferenceWatcherConfig config) {
         this._container = _container;
@@ -53,5 +54,27 @@ internal class DifferenceWatcher<T>
                 Monitor.Exit(_current_value);
             }
         }
+    }
+
+    public void Stop() => _timer?.Stop();
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposedValue)
+        {
+            if (disposing)
+            {
+                _timer?.Dispose();
+            }
+
+            disposedValue = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 }
