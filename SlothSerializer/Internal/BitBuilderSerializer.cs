@@ -83,7 +83,7 @@ internal static class BitBuilderSerializer {
 
         if (IsPrimitiveType(type)) {
             if (!BitBuilderWriter.IsBaseSupportedType(type)) throw new NotImplementedException($"Type must by implemented in {nameof(BitBuilderWriter)}.");
-            if (type == typeof(string)) builder.Append(new ObjectSerializationFlags());
+            if (type == typeof(string)) builder.Append(new ObjectSerializationFlags()); // shouldn't this check for null???
             builder.AppendBaseTypeObject(obj);
         }
         else {
