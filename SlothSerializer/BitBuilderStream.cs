@@ -13,7 +13,7 @@ public class BitBuilderStream : Stream {
 
     public override long Length => _buffer.TotalStreamLengthBytes;
 
-    public override long Position { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public override long Position { get; set; }
 
     internal BitBuilderStream(BitBuilderBuffer buffer) {
         _buffer = buffer;

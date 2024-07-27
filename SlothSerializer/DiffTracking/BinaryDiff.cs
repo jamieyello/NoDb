@@ -1,4 +1,6 @@
-﻿namespace SlothSerializer.Internal;
+﻿using SlothSerializer.Internal;
+
+namespace SlothSerializer.DiffTracking;
 
 public class BinaryDiff
 {
@@ -18,13 +20,11 @@ public class BinaryDiff
     ulong ResultHash { get; set; }
     long ResultLength { get; set; }
 
-    object expected_value_test;
-
     // Todo: This constructor needs to be hidden from the end user, but a method still needs to be made available for JSON serialization.
     [Obsolete("Don't use this manually.")]
     public BinaryDiff() { }
 
-    public BinaryDiff(BitBuilderBuffer old, BitBuilderBuffer new_, DiffMethodType method, object expected_value_test) {
+    public BinaryDiff(BitBuilderBuffer old, BitBuilderBuffer new_, DiffMethodType method) {
         Method = method;
         TargetHash = KnuthHash.Calculate(old);
         TargetLength = old.TotalStreamLengthBytes;
@@ -39,20 +39,20 @@ public class BinaryDiff
         else throw new NotImplementedException();
     }
 
-    public BinaryDiff(byte[] old, byte[] new_, DiffMethodType method) {
-        Method = method;
-        TargetHash = KnuthHash.Calculate(old);
-        TargetLength = old.Length;
-        ResultHash = KnuthHash.Calculate(new_);
-        ResultLength = new_.Length;
+    // public BinaryDiff(byte[] old, byte[] new_, DiffMethodType method) {
+    //     Method = method;
+    //     TargetHash = KnuthHash.Calculate(old);
+    //     TargetLength = old.Length;
+    //     ResultHash = KnuthHash.Calculate(new_);
+    //     ResultLength = new_.Length;
 
-        if (Method == DiffMethodType.replace) {
-            PatchData.Position = 0;
-            PatchData.SetLength(0);
-            PatchData.Write(new_);
-        }
-        else throw new NotImplementedException();
-    }
+    //     if (Method == DiffMethodType.replace) {
+    //         PatchData.Position = 0;
+    //         PatchData.SetLength(0);
+    //         PatchData.Write(new_);
+    //     }
+    //     else throw new NotImplementedException();
+    // }
 
     public async Task ApplyToAsync(string file_path) {
         using var fs = new FileStream(file_path, FileMode.Open);
@@ -80,8 +80,8 @@ public class BinaryDiff
 
     static void CheckHash(Stream stream, long expected_length, ulong expected_hash, string patched_or_unpatched) {
         stream.Position = 0;
-        //if (stream.Length != expected_length) throw new Exception($"{patched_or_unpatched} length mismatch. Expected:{expected_length} Read:{stream.Length}");
-        //if (expected_hash != KnuthHash.Calculate(stream)) throw new Exception($"Hash check failure. {patched_or_unpatched} result differs from expected result.");
+        if (stream.Length != expected_length) throw new Exception($"{patched_or_unpatched} length mismatch. Expected:{expected_length} Read:{stream.Length}");
+        if (expected_hash != KnuthHash.Calculate(stream)) throw new Exception($"Hash check failure. {patched_or_unpatched} result differs from expected result.");
         stream.Position = 0;
     }
 

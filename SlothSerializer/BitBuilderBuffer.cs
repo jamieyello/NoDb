@@ -102,14 +102,17 @@ public class BitBuilderBuffer {
         var r = GetReader();
         stream.Write(r.ReadBytes(bytes_count));
 
-        var hanging_bits = r.ReadBools(bits_count);
-        byte hanging_bits_byte = 0;
-        foreach (var hb in hanging_bits) {
-            hanging_bits_byte <<= 1;
-            hanging_bits_byte |= hb ? (byte)1 : (byte)0;
+        if (bits_count > 0) {
+            var hanging_bits = r.ReadBools(bits_count);
+            byte hanging_bits_byte = 0;
+            foreach (var hb in hanging_bits) {
+                hanging_bits_byte <<= 1;
+                hanging_bits_byte |= hb ? (byte)1 : (byte)0;
+            }
+            hanging_bits_byte <<= (byte)(8 - bits_count);
+            stream.WriteByte(hanging_bits_byte);
         }
-        hanging_bits_byte <<= (byte)(8 - bits_count);
-        stream.WriteByte(hanging_bits_byte);
+
         stream.Flush();
     }
 

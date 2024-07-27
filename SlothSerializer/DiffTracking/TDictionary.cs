@@ -1,7 +1,7 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 
-namespace NoDb.DiffTracking;
+namespace SlothSerializer.DiffTracking;
 
 /// <summary> A tracked Dictionary. </summary>
 public class TDictionary<TKey, TValue> : IDictionary<TKey, TValue> where TKey : notnull {

@@ -1,6 +1,6 @@
 using System.Collections;
 
-namespace NoDb.DiffTracking;
+namespace SlothSerializer.DiffTracking;
 
 /// <summary> A tracked List. </summary>
 public class TList<T> : IList<T> {

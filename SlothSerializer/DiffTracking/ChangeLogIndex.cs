@@ -1,4 +1,4 @@
-namespace NoDb.DiffTracking;
+namespace SlothSerializer.DiffTracking;
 
 public enum ChangeActionType {
     Set,
