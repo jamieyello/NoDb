@@ -1,6 +1,5 @@
-﻿using System.Runtime.Versioning;
-using SlothSerializer;
-using SlothSerializer.Internal;
+﻿using SlothSerializer;
+using SlothSerializer.DiffTracking;
 
 namespace NoDb.Syncers;
 

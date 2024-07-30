@@ -24,7 +24,7 @@ public class CollectionBenchmarks
     [TestMethod]
     public void WriteLowMemList()
     {
-        var target = new LowMemList<byte>();
+        var target = new SegmentedList<byte>();
         for (int i = 0; i < COUNT; i++) target.Add(0);
     }
 
