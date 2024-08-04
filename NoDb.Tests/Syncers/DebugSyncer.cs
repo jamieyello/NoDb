@@ -1,6 +1,6 @@
 using NoDb.Syncers;
 using SlothSerializer;
-using SlothSerializer.Internal;
+using SlothSerializer.DiffTracking;
 
 namespace NoDb.Tests.Syncers;
 

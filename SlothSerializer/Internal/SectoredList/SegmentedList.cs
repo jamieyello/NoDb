@@ -10,11 +10,11 @@ namespace SlothSerializer.Internal;
 public class SegmentedList<T> : IList<T> {
     // Base parameters
     /// <summary> The combined arrays. </summary>
-    readonly List<SegmentedListBlock<T>> _blocks;
+    readonly List<StorageBlock<T>> _blocks;
 
     public int Count { get; private set; }
     public bool IsReadOnly => false;
-    readonly int _block_size = SegmentedListBlock<T>.DEFAULT_BLOCK_SIZE;
+    readonly int _block_size = StorageBlock<T>.DEFAULT_BLOCK_SIZE;
 
     public T this[int index] {
         get {
@@ -46,9 +46,9 @@ public class SegmentedList<T> : IList<T> {
             _blocks.Add(new(_block_size));
         }
         _blocks[^1].Add(item);
+        Count++;
     }
 
-    // Very slow, needs speedup, testing
     public void RemoveAt(int index) {
         throw new NotImplementedException();
     }
@@ -89,9 +89,9 @@ public class SegmentedList<T> : IList<T> {
     public IEnumerator<T> GetEnumerator() {
         int c = 0;
         for (int b = 0; b < _blocks.Count; b++) {
-            for (int i = 0; i < _blocks[i].Count; i++) {
-                yield return _blocks[i][b];
-                if (c++ < Count) yield break;
+            for (int i = 0; i < _blocks[b].Count; i++) {
+                yield return _blocks[b][i];
+                if (++c == Count) yield break;
             }
         }
     }
@@ -99,6 +99,6 @@ public class SegmentedList<T> : IList<T> {
     IEnumerator IEnumerable.GetEnumerator() =>
         GetEnumerator();
 
-    public ulong GetHash() => 
-        KnuthHash.Calculate(_blocks.Select(x => x.GetBlockHash()));
+    // public ulong GetHash() => 
+    //     KnuthHash.Calculate(_blocks.Select(x => x.GetBlockHash()));
 }

@@ -40,7 +40,7 @@ internal class DifferenceWatcher<T> : IDisposable
                 _current_value.Append(_container.Value);
 
                 if (!_current_value.Matches(_previous_value) || (_initial && _config.TriggerInitial)) {
-                    _sync_update.Invoke(this, new() { Value = _container.Value, Diff = new(_previous_value, _current_value, _config.DiffMethod, _container) });
+                    _sync_update.Invoke(this, new() { Value = _container.Value, Diff = new(_previous_value, _current_value, _config.DiffMethod) });
                     _previous_value.Clear();
                     _previous_value.Append(_container);
                     _initial = false;

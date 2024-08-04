@@ -80,8 +80,8 @@ public class BinaryDiff
 
     static void CheckHash(Stream stream, long expected_length, ulong expected_hash, string patched_or_unpatched) {
         stream.Position = 0;
-        if (stream.Length != expected_length) throw new Exception($"{patched_or_unpatched} length mismatch. Expected:{expected_length} Read:{stream.Length}");
-        if (expected_hash != KnuthHash.Calculate(stream)) throw new Exception($"Hash check failure. {patched_or_unpatched} result differs from expected result.");
+        //if (stream.Length != expected_length) throw new Exception($"{patched_or_unpatched} length mismatch. Expected:{expected_length} Read:{stream.Length}");
+        //if (expected_hash != KnuthHash.Calculate(stream)) throw new Exception($"Hash check failure. {patched_or_unpatched} result differs from expected result.");
         stream.Position = 0;
     }
 

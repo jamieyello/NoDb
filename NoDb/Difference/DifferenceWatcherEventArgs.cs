@@ -1,5 +1,4 @@
-﻿using SlothSerializer;
-using SlothSerializer.Internal;
+﻿using SlothSerializer.DiffTracking;
 
 namespace NoDb.Difference;
 
