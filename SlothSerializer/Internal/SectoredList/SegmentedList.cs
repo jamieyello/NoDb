@@ -3,10 +3,15 @@
 namespace SlothSerializer.Internal;
 
 /// <summary>
-/// This class brings down the memory usage of List<>, especially with valuetypes/structs,
+/// This class brings down the memory usage of List, especially with valuetypes and structs,
 /// by stringing small arrays together rather than doubling one big one when the capacity is reached.
-/// Also optimized for hashing, caching a hash for each segment.
+/// Also optimized for hashing, caching a hash for each segment. Insert operations are also 
+/// heavily optimized over the default C# List.
 /// </summary>
+/// <remarks>
+/// This data structure is optimal for data that needs constant modification and monitoring. Read/Write
+/// operations may slightly suffer some speed loss.
+/// </remarks>
 public class SegmentedList<T> : IList<T> {
     // Base parameters
     /// <summary> The combined arrays. </summary>
@@ -55,6 +60,14 @@ public class SegmentedList<T> : IList<T> {
 
     public int IndexOf(T item) {
         int i_c = 0;
+
+        if (item == null) {
+            foreach (var i in this) {
+                if (i == null) return i_c;
+                i_c++;
+            }
+            return -1;
+        }
         foreach (var i in this) {
             if (item.Equals(i)) return i_c;
             i_c++;

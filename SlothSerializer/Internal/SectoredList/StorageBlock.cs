@@ -1,28 +1,24 @@
 using System.Collections;
-using System;
 
 namespace SlothSerializer.Internal;
 
 // Note: All error checking code will be commented out and kept in comment form
-// when all errors are ruled out. This is internal time-sensitive code.
+// when all errors are ruled out. This is internal time-sensitive code. All 
+// commented code should be maintained regardless.
 
-// All commented code should be maintained regardless.
-
-// removing hash functionality entirely from this
-
-
+/// <summary> A fixed size list that allocates a looping array of memory. </summary>
 internal class StorageBlock<T> : IList<T> {
     public const int DEFAULT_BLOCK_SIZE = 256;
     readonly T[] _block;
     readonly int _block_size;
-    //ulong _hash;
-    //bool _needs_hash_update = true;
-    //readonly bool _cast_to_ulong;
-
     int _start;
     public int Count {get; private set; }
     public bool IsReadOnly => false;
     public bool IsFull => Count == _block_size;
+    public int FreeSpace => _block_size - Count;
+
+    public StorageBlock<T>? NextBlock { get; set; }
+    public StorageBlock<T>? PreviousBlock { get; set; }
 
     public T this[int index] {
         get {
@@ -36,24 +32,14 @@ internal class StorageBlock<T> : IList<T> {
     }
 
     public StorageBlock() {
-        //_cast_to_ulong = typeof(ulong).IsAssignableFrom(typeof(T));
         _block_size = DEFAULT_BLOCK_SIZE;
         _block = new T[_block_size];
     }
 
     public StorageBlock(int size = DEFAULT_BLOCK_SIZE) {
-        //_cast_to_ulong = typeof(ulong).IsAssignableFrom(typeof(T));
         _block_size = size;
         _block = new T[_block_size];
     }
-
-    // public ulong GetBlockHash() {
-    //     if (!_needs_hash_update) return _hash;
-    //     _hash = 
-    //         _cast_to_ulong ? KnuthHash.Calculate(_block[0..Count].Cast<ulong>()) :
-    //         KnuthHash.Calculate(_block[0..Count].Select(x => x?.GetHashCode() ?? 0));
-    //     return _hash;
-    // }
 
     // not tested
     public void Add(T item) {
@@ -61,14 +47,26 @@ internal class StorageBlock<T> : IList<T> {
         _block[Count++ % _block_size] = item;
     }
 
-    // not done
-    public void Prepend() {
-        throw new NotImplementedException();
+    // add slower overloads
+    // not tested
+    public void AddRange(ReadOnlySpan<T> items) {
+        if (Count + items.Length > _block_size) throw new Exception("Block already at max capacity.");
+        for (int i = 0; i < items.Length; i++) {
+            _block[Count + i % _block_size] = items[i];
+        }
+        Count += items.Length;
+    }
+
+    // not tested
+    public void Prepend(T item) {
+        if (Count == _block_size) throw new Exception("Block already at max capacity.");
+        _start--;
+        _block[MinMaxMod(ref _start, _block_size)] = item;
     }
 
     // not tested
     public int IndexOf(T item) {
-        for (int i = 0; i < Count; i++) {
+        for (int i = _start; i < Count; i++) {
             if ((object?)_block[i % _block_size] == (object?)item) return i;
         }
         return -1;
@@ -78,9 +76,10 @@ internal class StorageBlock<T> : IList<T> {
     // optimize: copy lower half downwards if faster
     public void Insert(int index, T item) {
         if (Count == _block_size) throw new Exception("Block already at max capacity.");
+        if (index >= Count) throw new IndexOutOfRangeException("Index out of range.");
 
         var span = new Span<T>(_block); 
-        for (int i = _start + Count; i > _start + index; i--) {
+        for (int i = _start + index + Count; i > _start + index; i--) {
             span[MinMaxMod(i, _block_size)] = span[MinMaxMod(i - 1, _block_size)];
         }
         span[_start + index] = item;
@@ -89,10 +88,11 @@ internal class StorageBlock<T> : IList<T> {
 
     // not tested
     // optimize: copy lower half downwards if faster
-    public void Insert(int index, T[] values) {
+    public void Insert(int index, ReadOnlySpan<T> values) {
         if (Count + values.Length > _block_size) throw new Exception("No room for given values.");
+        if (index > Count) throw new IndexOutOfRangeException("Index out of range.");
         var block = new Span<T>(_block); 
-        for (int i = _start + Count; i > _start + index + values.Length; i--) {
+        for (int i = _start + index + Count + values.Length; i > _start + index; i--) {
             block[MinMaxMod(i, _block_size)] = block[MinMaxMod(i - values.Length, _block_size)];
         }
         for (int i = _start + index; i < _start + index + values.Length; i++) {
@@ -101,20 +101,28 @@ internal class StorageBlock<T> : IList<T> {
         Count += values.Length;
     }
 
-    // not done
-    public void RemoveAt(int index)
-    {
-        var b_span = new Span<T>(_block);
+    // not tested
+    public void RemoveAt(int index) {
+        if (index >= Count || index < 0) throw new IndexOutOfRangeException("Index out of range.");
 
+        var span = new Span<T>(_block); 
+        for (int i = _start + index; i < _start + index + Count; i++) {
+            span[i % _block_size] = span[(i + 1) % _block_size];
+        }
         Count--;
     }
 
-    // not done
-    public void RemoveRange(int start, int count) {
-        throw new NotImplementedException();
+    // not tested
+    public void RemoveRange(int index, int length) {
+        if (index >= Count || index < 0 || index + length > Count) throw new IndexOutOfRangeException("Index out of range.");
+
+        var span = new Span<T>(_block); 
+        for (int i = _start + index; i < _start + index + Count - length; i++) {
+            span[i % _block_size] = span[(i + length) % _block_size];
+        }
+        Count -= length;
     }
 
-    // done
     public void Clear() {
         _start = 0;
         Count = 0;
@@ -139,15 +147,17 @@ internal class StorageBlock<T> : IList<T> {
     public IEnumerator<T> GetEnumerator() =>
         ((IEnumerable<T>)_block[0..Count]).GetEnumerator();
 
-    public float GetMemoryEfficiency() => 
-        (float)Count / _block_size;
+    public double GetMemoryEfficiency() => 
+        (double)Count / _block_size;
 
     static int MinMaxMod(int value, int mod) {
         while (value < 0) value += mod;
         return value % mod;
     }
 
-    static void ArrayCopyMod() {
-
+    static int MinMaxMod(ref int value, int mod) {
+        while (value < 0) value += mod;
+        value %= mod;
+        return value;
     }
 }
