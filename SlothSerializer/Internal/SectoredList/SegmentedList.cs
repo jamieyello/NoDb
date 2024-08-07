@@ -5,7 +5,7 @@ namespace SlothSerializer.Internal;
 /// <summary>
 /// This class brings down the memory usage of List, especially with valuetypes and structs,
 /// by stringing small arrays together rather than doubling one big one when the capacity is reached.
-/// Also optimized for hashing, caching a hash for each segment. Insert operations are also 
+/// Also optimized for hashing, caching a hash for each segment. Insert/remove operations are also 
 /// heavily optimized over the default C# List.
 /// </summary>
 /// <remarks>
