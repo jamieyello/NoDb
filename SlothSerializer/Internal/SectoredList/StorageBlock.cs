@@ -2,71 +2,117 @@ using System.Collections;
 
 namespace SlothSerializer.Internal;
 
-// Note: All error checking code will be commented out and kept in comment form
-// when all errors are ruled out. This is internal time-sensitive code. All 
-// commented code should be maintained regardless.
-
+/// <summary>
+/// A fixed size list that keeps a cached hash.
+/// </summary>
+/// <typeparam name="T"></typeparam>
 internal class StorageBlock<T> : IList<T> {
     public const int DEFAULT_BLOCK_SIZE = 256;
-    readonly List<T> _values;
+    readonly List<T> _block;
+    readonly int _block_size;
+    public bool IsFull => Count == _block_size;
+    public int FreeSpace => _block_size - Count;
+
+    ulong _hash;
+    bool _needs_hash_update = true;
+    readonly bool _hash_as_ulong;
 
     public T this[int index] { 
-        get => _values[index]; 
-        set => _values[index] = value; 
+        get => _block[index];
+        set => _block[index] = value;
     }
 
-    public int Count => _values.Count;
+    public T[] this[Range range] {
+        get {
+            range.
+        }
+    }
+
+    public int Count => _block.Count;
     public bool IsReadOnly => false;
 
-    public void Add(T item)
-    {
-        _values.Add(item);
+    public StorageBlock() {
+        _hash_as_ulong = typeof(ulong).IsAssignableFrom(typeof(T));
+        _block_size = DEFAULT_BLOCK_SIZE;
+        _block = new(_block_size);
     }
 
-    public void Clear()
-    {
-        _values.Clear();
+    public StorageBlock(int size) {
+        _hash_as_ulong = typeof(ulong).IsAssignableFrom(typeof(T));
+        _block_size = size;
+        _block = new(_block_size);
     }
 
-    public bool Contains(T item)
-    {
-        return ((ICollection<T>)_values).Contains(item);
+    public void Add(T item) {
+        if (Count == _block_size) throw new Exception("Block already at max capacity.");
+        _block.Add(item);
+        _needs_hash_update = true;
     }
 
-    public void CopyTo(T[] array, int arrayIndex)
-    {
-        ((ICollection<T>)_values).CopyTo(array, arrayIndex);
+    public void AddRange(ICollection<T> items) {
+        if (Count + items.Count > _block_size) throw new Exception("Block already at max capacity.");
+        _block.AddRange(items);
+        _needs_hash_update = true;
     }
 
-    public IEnumerator<T> GetEnumerator()
-    {
-        return ((IEnumerable<T>)_values).GetEnumerator();
+    public void Clear() {
+        _block.Clear();
+        _needs_hash_update = true;
     }
 
-    public int IndexOf(T item)
-    {
-        return ((IList<T>)_values).IndexOf(item);
+    public bool Contains(T item) =>
+        _block.Contains(item);
+
+    public void CopyTo(T[] array, int arrayIndex) {
+        _block.CopyTo(array, arrayIndex);
+    }
+    
+    public IEnumerator<T> GetEnumerator() =>
+        _block.GetEnumerator();
+    
+    public int IndexOf(T item) =>
+        _block.IndexOf(item);
+
+    public void Insert(int index, T item) {
+        _needs_hash_update = true;
+        _block.Insert(index, item);
     }
 
-    public void Insert(int index, T item)
-    {
-        ((IList<T>)_values).Insert(index, item);
+    public void InsertRange(int index, ICollection<T> items) {
+        if (Count + items.Count > _block_size) throw new Exception("Block already at max capacity.");
+        _block.InsertRange(index, items);
+        _needs_hash_update = true;
     }
 
-    public bool Remove(T item)
-    {
-        return ((ICollection<T>)_values).Remove(item);
+    public bool Remove(T item) {
+        _needs_hash_update = true;
+        return _block.Remove(item);
     }
 
-    public void RemoveAt(int index)
-    {
-        ((IList<T>)_values).RemoveAt(index);
+    public void RemoveAt(int index) {
+        _needs_hash_update = true;
+        _block.RemoveAt(index);
     }
 
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return ((IEnumerable)_values).GetEnumerator();
+    public void RemoveRange(int index, int count) {
+        if (count > 0) _needs_hash_update = true;
+        _block.RemoveRange(index, count);
     }
+
+    IEnumerator IEnumerable.GetEnumerator() =>
+        _block.GetEnumerator();
+    
+    public ulong GetBlockHash() {
+        if (!_needs_hash_update) return _hash;
+        _hash = 
+            _hash_as_ulong ? KnuthHash.Calculate(this.Cast<ulong>()) :
+            KnuthHash.Calculate(this.Select(x => x?.GetHashCode() ?? 0));
+        _needs_hash_update = false;
+        return _hash;
+    }
+
+    public double GetMemoryEfficiency() => 
+        (double)Count / _block_size;
 }
 
 /// <summary> A fixed size list that allocates a looping array of memory. </summary>

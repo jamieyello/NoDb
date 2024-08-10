@@ -7,7 +7,7 @@ namespace SlothSerializer;
 public class BitBuilderBuffer {
     const string FILE_HEADER_TEXT = "BitBuilder";
 
-    List<ulong> _bits { get; set; } = new(); // swap for lowmemlist when brave enough
+    SegmentedList<ulong> _bits { get; set; } = new(); // swap for lowmemlist when brave enough
     internal readonly BitBuilderWriter Writer; // note: the writer contains the final ulong.
 
     /// <summary> Total size in bits. Does not always divide by 8 evenly. </summary>
