@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Security.Cryptography.X509Certificates;
 
 namespace SlothSerializer.Internal;
 
@@ -135,18 +136,28 @@ public class SegmentedList<T> : IList<T> {
         var inserted = 0;
 
         // initial insert
-        // wrong, needs to insert
-        // if (_blocks[insert_block].FreeSpace > 0) {
-        //     var insert_count = Math.Min(items.Length, _blocks[insert_block].FreeSpace);
-        //     _blocks[insert_block].InsertRange(insert_index, items[..insert_count]);
-        //     inserted += insert_count;
-        //     insert_block++;
-        // }
+        if (_blocks[insert_block].Count - insert_index > 0) {
+            // remove and prepend items existing in block
+            var after_count = Math.Min(_blocks[insert_block].Count - insert_index, items.Length);
+            var after_slice = new T[after_count];
+            _blocks[insert_block][insert_index..(insert_index + after_count)].CopyTo(new Span<T>(after_slice));
+            _blocks[insert_block].RemoveRange(insert_index, after_count);
+            items = GenericExtensions<T>.Prepend(items, after_slice).ToArray();
 
-        // initial insert
-        if (_blocks[insert_block].Count - index > 0) {
-            var preserve_slice = new T[_blocks[insert_block].Count - index];
-            _blocks[insert_block][insert_index..]
+            // if the target block has enough space for all items, insert all
+            var overflow = _blocks[insert_block].FreeSpace - items.Length;
+            if (overflow <= 0) {
+                _blocks[insert_block].InsertRange(insert_index, items);
+                inserted += items.Length;
+                insert_index += items.Length;
+            }
+
+            // insert what we can to fill the block
+            if (_blocks[insert_block].FreeSpace > 0 && inserted != items.Length) {
+                _blocks[insert_block].InsertRange(insert_index, items[insert_index..(insert_index + _blocks[insert_block].FreeSpace)]);
+                inserted += _blocks[insert_block].FreeSpace;
+                insert_index += _blocks[insert_block].FreeSpace;
+            }
         }
 
         // uninterrupted insert
@@ -204,6 +215,9 @@ public class SegmentedList<T> : IList<T> {
 
     public ulong GetHash() => 
         KnuthHash.Calculate(_blocks.Select(x => x.GetBlockHash()));
+
+    public IEnumerable<ulong> GetSegmentHashes() =>
+        _blocks.Select(x => x.GetBlockHash());
 
     (int Index, int Block) MapBlockIndex(int index) {
         if (index < 0 || index >= Count) throw new IndexOutOfRangeException();

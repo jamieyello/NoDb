@@ -10,5 +10,12 @@ public static class Extensions {
     };
 
     public static bool IsSignedNumeric(this Type type) => 
-    signed_numerics.Contains(type);
+        signed_numerics.Contains(type);
+}
+
+public static class GenericExtensions<T> {
+    public static IEnumerable<T> Prepend(IEnumerable<T> values, IEnumerable<T> prepend_values) {
+        foreach (var v in prepend_values) yield return v;
+        foreach (var v in values) yield return v;
+    }
 }

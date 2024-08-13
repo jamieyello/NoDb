@@ -23,9 +23,7 @@ internal class StorageBlock<T> : IList<T> {
     }
 
     public T[] this[Range range] {
-        get {
-            range.
-        }
+        get => _block.GetRange(range.Start.Value, range.End.Value - range.Start.Value).ToArray();
     }
 
     public int Count => _block.Count;
