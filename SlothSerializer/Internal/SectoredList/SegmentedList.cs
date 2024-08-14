@@ -6,12 +6,13 @@ namespace SlothSerializer.Internal;
 /// <summary>
 /// This class brings down the memory usage of List, especially with valuetypes and structs,
 /// by stringing small arrays together rather than doubling one big one when the capacity is reached.
-/// Also optimized for hashing, caching a hash for each segment. Insert/remove operations are also 
+/// Optimized for hashing, caching a hash for each segment. Insert/remove operations are 
 /// heavily optimized over the default C# List.
 /// </summary>
 /// <remarks>
-/// This data structure is optimal for data that needs constant modification and monitoring. Read/Write
-/// operations may slightly suffer some speed loss.
+/// This data structure is optimal for data that needs constant dynamic modification and monitoring. 
+/// Read/Write operations suffer some speed loss. Prefer "Range" methods when modifying, as they are
+/// far more efficient. (<see cref="AddRange"/>, <see cref="RemoveRange"/>, and <see cref="InsertRange"/>)
 /// </remarks>
 public class SegmentedList<T> : IList<T> {
     // Base parameters
@@ -118,12 +119,13 @@ public class SegmentedList<T> : IList<T> {
     }
 
     public void Insert(int index, T item) {
-        if (_blocks[index].IsFull) {
+        var bi = MapBlockIndex(index);
+        if (_blocks[bi.Block].IsFull) {
             _blocks.Add(new(_block_size));
-            _blocks[index + 1].Add(item);
+            _blocks[bi.Block + 1].Add(item);
         }
         else {
-            _blocks[index].Add(item);
+            _blocks[bi.Block].Add(item);
         }
         Count++;
     }
