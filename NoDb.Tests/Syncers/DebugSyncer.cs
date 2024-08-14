@@ -26,17 +26,17 @@ public class DebugSyncer<DebugT> : Syncer
         });
     }
 
-    public override Task<BinaryDiff> Pull(BinaryDiff diff) {
+    public override Task<BitBuilderDiff> Pull(BitBuilderDiff diff) {
         return base.Pull(diff);
     }
 
-    public override async Task Push(BinaryDiff diff) {
+    public override async Task Push(BitBuilderDiff diff) {
         Inspect($"Pre-push #{++push_count} inspection.");
         await diff.ApplyToAsync(bb_ms);
         Inspect($"Post-push #{push_count} inspection.");
     }
 
-    public override Task ClosingPush(BinaryDiff diff) => 
+    public override Task ClosingPush(BitBuilderDiff diff) => 
         Push(diff);
     
     static void ToBitBuilderStream(object? value, MemoryStream stream, SerializeMode mode) {

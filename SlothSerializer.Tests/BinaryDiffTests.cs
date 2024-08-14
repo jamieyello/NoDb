@@ -33,7 +33,7 @@ public class BinaryDiffTests {
         var bb2 = new BitBuilderBuffer();
         bb1.Append(StartData);
         bb2.Append(EndData);
-        var diff = new BinaryDiff(bb1, bb2, BinaryDiff.DiffMethodType.replace);
+        var diff = new BitBuilderDiff(bb1, bb2, BitBuilderDiff.DiffMethodType.replace);
 
         bb1.WriteToStream(ms);
         await diff.ApplyToAsync(ms);

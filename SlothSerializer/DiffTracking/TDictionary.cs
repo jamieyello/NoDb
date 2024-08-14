@@ -5,7 +5,7 @@ namespace SlothSerializer.DiffTracking;
 
 /// <summary> A tracked Dictionary. </summary>
 public class TDictionary<TKey, TValue> : IDictionary<TKey, TValue> where TKey : notnull {
-    readonly List<ChangeLogIndex<TKey, TValue>> _change_log = new();
+    readonly List<ChangeLogIndex<TKey, TValue>> _change_log = new(); // don't like this?
     readonly Dictionary<TKey, TValue> _dictionary = new();
     readonly bool _is_primative;
 

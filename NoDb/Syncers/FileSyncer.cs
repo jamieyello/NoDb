@@ -27,13 +27,13 @@ public class FileSyncer : Syncer
         }
     }
 
-    public override Task<BinaryDiff> Pull(BinaryDiff diff) => 
+    public override Task<BitBuilderDiff> Pull(BitBuilderDiff diff) => 
         throw new NotImplementedException("Active file watching is not implemented.");
 
-    public override async Task Push(BinaryDiff diff) {
+    public override async Task Push(BitBuilderDiff diff) {
         await diff.ApplyToAsync(Config.FilePath);
     }
 
-    public override async Task ClosingPush(BinaryDiff diff) => 
+    public override async Task ClosingPush(BitBuilderDiff diff) => 
         await Push(diff);
 }

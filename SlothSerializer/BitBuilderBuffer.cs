@@ -3,79 +3,80 @@ using SlothSerializer.Internal;
 
 namespace SlothSerializer;
 
-/// <summary> Serializes data to a ulong[]. Grows in size automatically. Does not shrink. </summary>
+/// <summary> Serializes data to a ulong[]. Uses space efficiently, a bool only takes 1 bit of space. </summary>
 public class BitBuilderBuffer {
     const string FILE_HEADER_TEXT = "BitBuilder";
 
-    SegmentedList<ulong> _bits { get; set; } = new(); // swap for lowmemlist when brave enough
-    internal readonly BitBuilderWriter Writer; // note: the writer contains the final ulong.
+    internal readonly SegmentedList<ulong> _bits = new(); // swap for lowmemlist when brave enough
+    internal readonly BitBuilderWriter _writer; // note: the writer contains the final ulong.
 
-    /// <summary> Total size in bits. Does not always divide by 8 evenly. </summary>
-    public long TotalLengthBits => 
-        _bits.Count * 64 + Writer.XPos;
+    /// <summary> Total length of data in bits. Does not always divide by 8 evenly. </summary>
+    public long DataLengthBits => 
+        _bits.Count * 64 + _writer.XPos;
 
-    public long TotalStreamLengthBytes =>
+    /// <summary>
+    /// Total size of serialized <see cref="BitBuilderBuffer"/>.
+    /// </summary>
+    public long SerializedLengthBytes =>
         Encoding.ASCII.GetByteCount(FILE_HEADER_TEXT) + 
         8 + // header
         8 + // size
-        TotalLengthBits / 8 + // bytes
-        ((TotalLengthBits % 8) > 0 ? 1 : 0); // trailing byte
+        8 + // hash
+        DataLengthBits / 8 + // bytes
+        ((DataLengthBits % 8) > 0 ? 1 : 0); // trailing byte
 
     ulong HeaderData => 0ul;
 
     public ulong this[int i] => 
-        i == _bits.Count ? Writer.Bits : _bits[i];
+        i == _bits.Count ? _writer.Bits : _bits[i];
 
     public BitBuilderBuffer() =>
-        Writer = new(_bits.Add);
+        _writer = new(_bits.Add);
 
     public string DebugString =>
         string.Join('\n', _bits.Select(ul => Convert.ToString((long)ul, 2).PadLeft(64, '0'))) +
-        $"\nWriter (Xpos={Writer.XPos}):\n{Convert.ToString((long)Writer.Bits, 2).PadRight(64, '0')[..Writer.XPos].PadRight(64, '-')}";
+        $"\nWriter (Xpos={_writer.XPos}):\n{Convert.ToString((long)_writer.Bits, 2).PadRight(64, '0')[.._writer.XPos].PadRight(64, '-')}";
 
     public BitBuilderReader GetReader() => 
-        new(i => this[i], () => TotalLengthBits);
+        new(i => this[i], () => DataLengthBits);
 
-    public BitBuilderStream GetStream() => 
-        new(this);
-
-    public void Append(bool value) => Writer.Append(value);
-    public void Append(sbyte value) => Writer.Append(value);
-    public void Append(byte value) => Writer.Append(value);
-    public void Append(ushort value) => Writer.Append(value);
-    public void Append(short value) => Writer.Append(value);
-    public void Append(char value) => Writer.Append(value);
-    public void Append(uint value) => Writer.Append(value);
-    public void Append(int value) => Writer.Append(value);
-    public void Append(ulong value) => Writer.Append(value);
-    public void Append(long value) => Writer.Append(value);
-    public void Append(DateTime value) => Writer.Append(value);
-    public void Append(TimeSpan value) => Writer.Append(value);
-    public void Append(decimal value) => Writer.Append(value);
-    public void Append(string value) => Writer.Append(value);
-    internal void Append(ObjectSerializationFlags object_flags) => Writer.Append(object_flags);
-    public void Append(object? obj, SerializeMode mode = SerializeMode.Properties) => Writer.Append(obj, mode);
+    public void Append(bool value) => _writer.Append(value);
+    public void Append(sbyte value) => _writer.Append(value);
+    public void Append(byte value) => _writer.Append(value);
+    public void Append(ushort value) => _writer.Append(value);
+    public void Append(short value) => _writer.Append(value);
+    public void Append(char value) => _writer.Append(value);
+    public void Append(uint value) => _writer.Append(value);
+    public void Append(int value) => _writer.Append(value);
+    public void Append(ulong value) => _writer.Append(value);
+    public void Append(long value) => _writer.Append(value);
+    public void Append(DateTime value) => _writer.Append(value);
+    public void Append(TimeSpan value) => _writer.Append(value);
+    public void Append(decimal value) => _writer.Append(value);
+    public void Append(string value) => _writer.Append(value);
+    internal void Append(ObjectSerializationFlags object_flags) => _writer.Append(object_flags);
+    public void Append(object? obj, SerializeMode mode = SerializeMode.Properties) => _writer.Append(obj, mode);
 
     // todo: change all these to readonlyspan.
-    public void Append(IList<bool> value) => Writer.Append(value);
-    public void Append(IList<sbyte> value) => Writer.Append(value);
-    public void Append(IList<byte> value) => Writer.Append(value);
-    public void Append(IList<ushort> value) => Writer.Append(value);
-    public void Append(IList<short> value) => Writer.Append(value);
-    public void Append(IList<char> value) => Writer.Append(value);
-    public void Append(IList<uint> value) => Writer.Append(value);
-    public void Append(IList<int> value) => Writer.Append(value);
-    public void Append(IList<ulong> value) => Writer.Append(value);
-    public void Append(IList<long> value) => Writer.Append(value);
-    public void Append(IList<string> value) => Writer.Append(value);
+    public void Append(IList<bool> value) => _writer.Append(value);
+    public void Append(IList<sbyte> value) => _writer.Append(value);
+    public void Append(IList<byte> value) => _writer.Append(value);
+    public void Append(IList<ushort> value) => _writer.Append(value);
+    public void Append(IList<short> value) => _writer.Append(value);
+    public void Append(IList<char> value) => _writer.Append(value);
+    public void Append(IList<uint> value) => _writer.Append(value);
+    public void Append(IList<int> value) => _writer.Append(value);
+    public void Append(IList<ulong> value) => _writer.Append(value);
+    public void Append(IList<long> value) => _writer.Append(value);
+    public void Append(IList<string> value) => _writer.Append(value);
 
     public void Clear() {
         _bits.Clear();
-        Writer.Reset();
+        _writer.Reset();
     }
 
     public bool Matches(BitBuilderBuffer b) =>
-        Writer.Bits == b.Writer.Bits && _bits.SequenceEqual(b._bits);
+        _writer.Bits == b._writer.Bits && _bits.SequenceEqual(b._bits);
 
     public async Task WriteToDiskAsync(string file_path) =>
         await Task.Run(() => WriteToDisk(file_path));
@@ -94,9 +95,10 @@ public class BitBuilderBuffer {
     public void WriteToStream(Stream stream) {
         stream.Write(Encoding.ASCII.GetBytes(FILE_HEADER_TEXT));
         stream.Write(BitConverter.GetBytes(HeaderData));
-        stream.Write(BitConverter.GetBytes(TotalLengthBits));
-        var bytes_count = TotalLengthBits / 8;
-        var bits_count = TotalLengthBits - bytes_count * 8;
+        stream.Write(BitConverter.GetBytes(DataLengthBits));
+        stream.Write(BitConverter.GetBytes(GetHash()));
+        var bytes_count = DataLengthBits / 8;
+        var bits_count = DataLengthBits - bytes_count * 8;
 
         var r = GetReader();
         stream.Write(r.ReadBytes(bytes_count));
@@ -143,6 +145,9 @@ public class BitBuilderBuffer {
         stream.Read(total_length_bits_arr);
         var total_length_bits = BitConverter.ToInt64(total_length_bits_arr);
 
+        var hash = new byte[8];
+        stream.Read(hash);
+
         if (text_header_str != FILE_HEADER_TEXT) throw new DataMisalignedException("Invalid header from data stream.");
 
         var bytes_count = total_length_bits / 8;
@@ -164,7 +169,8 @@ public class BitBuilderBuffer {
     public IEnumerable<byte> EnumerateAsBytes() {
         foreach (var b in Encoding.ASCII.GetBytes(FILE_HEADER_TEXT)) yield return b;
         foreach (var b in BitConverter.GetBytes(HeaderData)) yield return b;
-        foreach (var b in BitConverter.GetBytes(TotalLengthBits)) yield return b;
+        foreach (var b in BitConverter.GetBytes(DataLengthBits)) yield return b;
+        foreach (var b in BitConverter.GetBytes(GetHash())) yield return b;
 
         foreach (var ul in _bits) {
             yield return (byte)(ul >> 56);
@@ -177,9 +183,16 @@ public class BitBuilderBuffer {
             yield return (byte)ul;
         }
 
-        var hanging_bit_count = Writer.XPos % 8 > 0 ? 1 : 0;
-        for (int i = 0; i < Writer.XPos / 8 + hanging_bit_count; i++) {
-            yield return (byte)(Writer.Bits >> 56 - i * 8);
+        var hanging_bit_count = _writer.XPos % 8 > 0 ? 1 : 0;
+        for (int i = 0; i < _writer.XPos / 8 + hanging_bit_count; i++) {
+            yield return (byte)(_writer.Bits >> 56 - i * 8);
         }
     }
+
+    public ulong GetHash() =>
+        KnuthHash.Calculate(GenericExtensions<ulong>.EnumerateParams(
+            _bits.GetHash(),
+            _writer.Bits,
+            _writer.XPos
+        ));
 }

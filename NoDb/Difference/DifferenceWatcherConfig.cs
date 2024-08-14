@@ -12,5 +12,5 @@ public class DifferenceWatcherConfig
     /// </summary>
     public bool TriggerInitial { get; init; }
 
-    public BinaryDiff.DiffMethodType DiffMethod { get; init; } = BinaryDiff.DiffMethodType.replace;
+    public BitBuilderDiff.DiffMethodType DiffMethod { get; init; } = BitBuilderDiff.DiffMethodType.replace;
 }

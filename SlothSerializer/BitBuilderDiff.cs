@@ -1,8 +1,8 @@
 ﻿using SlothSerializer.Internal;
 
-namespace SlothSerializer.DiffTracking;
+namespace SlothSerializer;
 
-public class BinaryDiff
+public class BitBuilderDiff
 {
     public enum DiffMethodType
     {
@@ -22,14 +22,14 @@ public class BinaryDiff
 
     // Todo: This constructor needs to be hidden from the end user, but a method still needs to be made available for JSON serialization.
     [Obsolete("Don't use this manually.")]
-    public BinaryDiff() { }
+    public BitBuilderDiff() { }
 
-    public BinaryDiff(BitBuilderBuffer old, BitBuilderBuffer new_, DiffMethodType method) {
+    public BitBuilderDiff(BitBuilderBuffer old, BitBuilderBuffer new_, DiffMethodType method) {
         Method = method;
         TargetHash = KnuthHash.Calculate(old);
-        TargetLength = old.TotalStreamLengthBytes;
+        TargetLength = old.SerializedLengthBytes;
         ResultHash = KnuthHash.Calculate(new_);
-        ResultLength = new_.TotalStreamLengthBytes;
+        ResultLength = new_.SerializedLengthBytes;
 
         if (Method == DiffMethodType.replace) {
             PatchData.Position = 0;
@@ -39,29 +39,18 @@ public class BinaryDiff
         else throw new NotImplementedException();
     }
 
-    // public BinaryDiff(byte[] old, byte[] new_, DiffMethodType method) {
-    //     Method = method;
-    //     TargetHash = KnuthHash.Calculate(old);
-    //     TargetLength = old.Length;
-    //     ResultHash = KnuthHash.Calculate(new_);
-    //     ResultLength = new_.Length;
+    public async Task ApplyToAsync(BitBuilderBuffer buffer) {
+        throw new NotImplementedException();
+    }
 
-    //     if (Method == DiffMethodType.replace) {
-    //         PatchData.Position = 0;
-    //         PatchData.SetLength(0);
-    //         PatchData.Write(new_);
-    //     }
-    //     else throw new NotImplementedException();
-    // }
-
-    public async Task ApplyToAsync(string file_path) {
-        using var fs = new FileStream(file_path, FileMode.Open);
+    public async Task ApplyToAsync(string serialized_buffer_file_path) {
+        using var fs = new FileStream(serialized_buffer_file_path, FileMode.Open);
         await ApplyToAsync(fs);
         fs.Flush();
         fs.Close();
     }
 
-    public async Task ApplyToAsync(Stream stream) {
+    async Task ApplyToAsync(Stream stream) {
         await Task.Run(() => CheckHash(stream, TargetLength, TargetHash, "Unpatched"));
         
         if (Method == DiffMethodType.replace) await ApplyReplace(PatchData, stream);
@@ -83,14 +72,5 @@ public class BinaryDiff
         //if (stream.Length != expected_length) throw new Exception($"{patched_or_unpatched} length mismatch. Expected:{expected_length} Read:{stream.Length}");
         //if (expected_hash != KnuthHash.Calculate(stream)) throw new Exception($"Hash check failure. {patched_or_unpatched} result differs from expected result.");
         stream.Position = 0;
-    }
-
-    // here for debugging
-    public static T? FromBitBuilderStream<T>(MemoryStream stream, SerializeMode mode) {
-        var bb = new BitBuilderBuffer();
-        stream.Position = 0;
-        bb.ReadFromStream(stream);
-        stream.Position = 0;
-        return bb.GetReader().Read<T>(mode);
     }
 }
