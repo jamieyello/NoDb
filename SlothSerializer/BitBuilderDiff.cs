@@ -1,16 +1,21 @@
-﻿using SlothSerializer.Internal;
+﻿using SlothSerializer.DiffTracking;
+using SlothSerializer.Internal;
 
 namespace SlothSerializer;
+
+// Rules; Does not apply to headers under any circumstances.
 
 public class BitBuilderDiff
 {
     public enum DiffMethodType
     {
-        replace
+        replace,
+        patch
     }
 
     DiffMethodType Method { get; set; }
-    MemoryStream PatchData { get; set; } = new(); // this is completely arbituary, data depends on the method used.
+    MemoryStream? ReplaceData { get; set; }
+    List<BinaryDiffSegment>? PatchSegments { get; set; }
 
     // values of the binary that this should be applied to
     ulong TargetHash { get; set; }
@@ -32,38 +37,45 @@ public class BitBuilderDiff
         ResultLength = new_.SerializedLengthBytes;
 
         if (Method == DiffMethodType.replace) {
-            PatchData.Position = 0;
-            PatchData.SetLength(0);
-            new_.WriteToStream(PatchData);
+            ReplaceData = new();
+            new_.WriteToStream(ReplaceData);
+        }
+        if (Method == DiffMethodType.patch) {
+            PatchSegments = CreateDiffSegments(old, new_);
         }
         else throw new NotImplementedException();
     }
 
     public async Task ApplyToAsync(BitBuilderBuffer buffer) {
+        if (Method == DiffMethodType.replace) {
+            
+        }
+
         throw new NotImplementedException();
     }
 
-    public async Task ApplyToAsync(string serialized_buffer_file_path) {
-        using var fs = new FileStream(serialized_buffer_file_path, FileMode.Open);
-        await ApplyToAsync(fs);
-        fs.Flush();
-        fs.Close();
-    }
+    // public async Task ApplyToAsync(string serialized_buffer_file_path) {
+    //     using var fs = new FileStream(serialized_buffer_file_path, FileMode.Open);
+    //     await ApplyToAsync(fs);
+    //     fs.Flush();
+    //     fs.Close();
+    // }
 
     async Task ApplyToAsync(Stream stream) {
         await Task.Run(() => CheckHash(stream, TargetLength, TargetHash, "Unpatched"));
         
-        if (Method == DiffMethodType.replace) await ApplyReplace(PatchData, stream);
+        if (Method == DiffMethodType.replace) await ApplyReplace(stream);
         else throw new NotImplementedException();
 
         await Task.Run(() => CheckHash(stream, ResultLength, ResultHash, "Patched"));
     }
 
-    static async Task ApplyReplace(Stream patch, Stream stream) {
+    async Task ApplyReplace(Stream stream) {
+        if (ReplaceData == null || Method != DiffMethodType.replace) throw new Exception();
         stream.Position = 0;
-        stream.SetLength(patch.Length);
-        patch.Position = 0;
-        await patch.CopyToAsync(stream);
+        stream.SetLength(ReplaceData.Length);
+        ReplaceData.Position = 0;
+        await ReplaceData.CopyToAsync(stream);
         stream.Position = 0;
     }
 
@@ -73,4 +85,27 @@ public class BitBuilderDiff
         //if (expected_hash != KnuthHash.Calculate(stream)) throw new Exception($"Hash check failure. {patched_or_unpatched} result differs from expected result.");
         stream.Position = 0;
     }
+
+    static List<BinaryDiffSegment> CreateDiffSegments(BitBuilderBuffer old, BitBuilderBuffer new_) {
+        var res = new List<BinaryDiffSegment>();
+
+        long old_i_bits = 0;
+        long new_i_bits = 0;
+        var old_length_bits = old.DataLengthBits;
+        var new_length_bits = new_.DataLengthBits;
+
+        while (old_i_bits < old_length_bits || new_i_bits < new_length_bits) {
+
+        }
+
+        throw new NotImplementedException();
+        return res;
+    }
 }
+
+
+        // // Adam
+        // var _world_of_warcraft = "boy.ssmh";
+        // if (!string.IsNullOrWhiteSpace(_world_of_warcraft)) {
+        //     Console.WriteLine("$");
+        // }

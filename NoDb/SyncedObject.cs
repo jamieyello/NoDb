@@ -15,12 +15,12 @@ public class SyncedObject<T> : IDisposable
 #pragma warning restore IDE0052 // Remove unread private members
 
     readonly SyncedObjectContainer<T> _container;
-    readonly Task initialized_task;
+    readonly Task _initialize_task;
     private bool disposedValue;
 
-    public T? Value { 
+    public T? Value {
         get {
-            initialized_task.Wait();
+            _initialize_task.Wait();
             return _container.Value;
         }
         set => _container.Value = value;
@@ -30,28 +30,34 @@ public class SyncedObject<T> : IDisposable
         _container = new(default_value);
         _syncers.AddRange(config.GetSyncers());
         _push_watcher = new DifferenceWatcher<T>(_container, OnPushDifference, auto_save_options ?? new());
+        _initialize_task = InitializeTask();
+    }
+
+    async Task InitializeTask() {
+        var connection_tasks = _syncers.Select(x => x.Connect());
+        await Task.WhenAll(connection_tasks);
 
         var loader = _syncers.Where(x => x.Load).FirstOrDefault();
-        initialized_task = loader != null ? FullLoad(loader) : Task.CompletedTask;
+        if (loader != null) await FullLoad(loader);
     }
 
     public SyncedObject<T> Loaded() {
-        initialized_task.Wait();
+        _initialize_task.Wait();
         return this;
-    } 
+    }
 
     public async Task<SyncedObject<T>> LoadedAsync() {
-        await initialized_task;
+        await _initialize_task;
         return this;
-    } 
+    }
 
     public T? WaitForLoad() {
-        initialized_task.Wait();
+        _initialize_task.Wait();
         return Value;
-    } 
+    }
 
     public async Task<T?> WaitForLoadAsync() {
-        await initialized_task;
+        await _initialize_task;
         return Value;
     }
 

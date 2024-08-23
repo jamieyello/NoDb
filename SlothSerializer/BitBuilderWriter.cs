@@ -79,7 +79,7 @@ public class BitBuilderWriter {
         Append((ulong)value.Kind, 32);
     }
     public void Append(TimeSpan value) => Append((ulong)value.Ticks, 64);
-    public void Append(decimal value) => Append(decimal.GetBits(value));
+    public void Append(decimal value) => Append(decimal.GetBits(value)); // optimize
 
     /// <param name="value"></param>
     public void Append(string value) {
@@ -133,6 +133,10 @@ public class BitBuilderWriter {
         for (int i = 0; i < value.Count; i++) Append(value[i]);
     }
     #endregion
+
+    public void InsertRange(int index, ulong[] value) {
+        // conflicts with xpos?
+    }
 
     void Append(ulong value, byte length) {
         var remainder = 64 - length;

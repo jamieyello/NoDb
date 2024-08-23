@@ -5,27 +5,30 @@ namespace SlothSerializer;
 
 /// <summary> Serializes data to a ulong[]. Uses space efficiently, a bool only takes 1 bit of space. </summary>
 public class BitBuilderBuffer {
-    const string FILE_HEADER_TEXT = "BitBuilder";
+    const string FILE_HEADER_TEXT = "BBBuff__";
 
     internal readonly SegmentedList<ulong> _bits = new(); // swap for lowmemlist when brave enough
     internal readonly BitBuilderWriter _writer; // note: the writer contains the final ulong.
+
+    internal long HeaderLengthBytes =>
+        Encoding.ASCII.GetByteCount(FILE_HEADER_TEXT) + 
+        8 + // header
+        8 + // size
+        8; // hash
+
 
     /// <summary> Total length of data in bits. Does not always divide by 8 evenly. </summary>
     public long DataLengthBits => 
         _bits.Count * 64 + _writer.XPos;
 
-    /// <summary>
-    /// Total size of serialized <see cref="BitBuilderBuffer"/>.
-    /// </summary>
+    /// <summary> Total size of serialized <see cref="BitBuilderBuffer"/>. </summary>
     public long SerializedLengthBytes =>
-        Encoding.ASCII.GetByteCount(FILE_HEADER_TEXT) + 
-        8 + // header
-        8 + // size
-        8 + // hash
+        HeaderLengthBytes +
         DataLengthBits / 8 + // bytes
         ((DataLengthBits % 8) > 0 ? 1 : 0); // trailing byte
 
-    ulong HeaderData => 0ul;
+    ulong HeaderData =>
+        0ul;
 
     public ulong this[int i] => 
         i == _bits.Count ? _writer.Bits : _bits[i];
@@ -165,12 +168,18 @@ public class BitBuilderBuffer {
         }
     }
 
-    // Todo: throw exception if a write method is accessed while this is happening
-    public IEnumerable<byte> EnumerateAsBytes() {
+    internal IEnumerable<byte> EnumerateHeader() {
         foreach (var b in Encoding.ASCII.GetBytes(FILE_HEADER_TEXT)) yield return b;
         foreach (var b in BitConverter.GetBytes(HeaderData)) yield return b;
         foreach (var b in BitConverter.GetBytes(DataLengthBits)) yield return b;
         foreach (var b in BitConverter.GetBytes(GetHash())) yield return b;
+    }
+
+    // Todo: throw exception if a write method is accessed while this is happening
+    public IEnumerable<byte> EnumerateAsBytes(bool include_header = true) {
+        if (include_header) {
+            foreach (var b in EnumerateHeader()) yield return b;
+        }
 
         foreach (var ul in _bits) {
             yield return (byte)(ul >> 56);
