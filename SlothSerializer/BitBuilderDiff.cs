@@ -54,12 +54,12 @@ public class BitBuilderDiff
         throw new NotImplementedException();
     }
 
-    // public async Task ApplyToAsync(string serialized_buffer_file_path) {
-    //     using var fs = new FileStream(serialized_buffer_file_path, FileMode.Open);
-    //     await ApplyToAsync(fs);
-    //     fs.Flush();
-    //     fs.Close();
-    // }
+    public async Task ApplyToAsync(string serialized_buffer_file_path) {
+        using var fs = new FileStream(serialized_buffer_file_path, FileMode.Open);
+        await ApplyToAsync(fs);
+        fs.Flush();
+        fs.Close();
+    }
 
     async Task ApplyToAsync(Stream stream) {
         await Task.Run(() => CheckHash(stream, TargetLength, TargetHash, "Unpatched"));
@@ -88,24 +88,43 @@ public class BitBuilderDiff
 
     static List<BinaryDiffSegment> CreateDiffSegments(BitBuilderBuffer old, BitBuilderBuffer new_) {
         var res = new List<BinaryDiffSegment>();
+        BinaryDiffSegment? current_diff = null;
 
-        long old_i_bits = 0;
-        long new_i_bits = 0;
-        var old_length_bits = old.DataLengthBits;
-        var new_length_bits = new_.DataLengthBits;
+        var old_r = old.GetReader();
+        var new_r = new_.GetReader();
+        var old_i = 0;
+        var new_i = 0;
 
-        while (old_i_bits < old_length_bits || new_i_bits < new_length_bits) {
-
+        while (old_r.Remainder >= 64 && new_r.Remainder >= 64) {
+            var old_v = old_r.ReadULong();
+            old_i += 64;
+            var new_v = old_r.ReadULong();
+            new_i += 64;
+            var difference = GetDifference(old_v, new_v);
+            if (difference == -1) {
+                continue;
+            }
+            if (current_diff == null) {
+                //current_diff = BinaryDiffSegment. // uhh
+            }
         }
 
-        throw new NotImplementedException();
         return res;
+    }
+
+    static int GetDifference(ulong v1, ulong v2) {
+        var xor = v1 ^ v2;
+        if (xor == 0) return -1;
+        // there might be a better way
+        for (int i = 0; i < 64; i++) {
+            if (xor.MaskIncludeStart(i) > 0) return i;
+        }
+        throw new Exception("Internal exception.");
     }
 }
 
-
-        // // Adam
-        // var _world_of_warcraft = "boy.ssmh";
-        // if (!string.IsNullOrWhiteSpace(_world_of_warcraft)) {
-        //     Console.WriteLine("$");
-        // }
+// // Adam
+// var _world_of_warcraft = "boy.ssmh";
+// if (!string.IsNullOrWhiteSpace(_world_of_warcraft)) {
+//     Console.WriteLine("$");
+// }

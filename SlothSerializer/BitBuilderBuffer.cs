@@ -16,7 +16,6 @@ public class BitBuilderBuffer {
         8 + // size
         8; // hash
 
-
     /// <summary> Total length of data in bits. Does not always divide by 8 evenly. </summary>
     public long DataLengthBits => 
         _bits.Count * 64 + _writer.XPos;
@@ -32,6 +31,16 @@ public class BitBuilderBuffer {
 
     public ulong this[int i] => 
         i == _bits.Count ? _writer.Bits : _bits[i];
+
+    public IEnumerable<ulong> this[Range range] {
+        get {
+            var end = Math.Min(_bits.Count, range.End.Value);
+            for (int i = range.Start.Value; i < end; i++) {
+                yield return _bits[i];
+            }
+            if (range.End.Value == _bits.Count) yield return _writer.Bits;
+        }
+    }
 
     public BitBuilderBuffer() =>
         _writer = new(_bits.Add);
@@ -95,11 +104,13 @@ public class BitBuilderBuffer {
         fs.Close();
     }
 
-    public void WriteToStream(Stream stream) {
-        stream.Write(Encoding.ASCII.GetBytes(FILE_HEADER_TEXT));
-        stream.Write(BitConverter.GetBytes(HeaderData));
-        stream.Write(BitConverter.GetBytes(DataLengthBits));
-        stream.Write(BitConverter.GetBytes(GetHash()));
+    public void WriteToStream(Stream stream, bool include_header = true) {
+        if (include_header) {
+            stream.Write(Encoding.ASCII.GetBytes(FILE_HEADER_TEXT));
+            stream.Write(BitConverter.GetBytes(HeaderData));
+            stream.Write(BitConverter.GetBytes(DataLengthBits));
+            stream.Write(BitConverter.GetBytes(GetHash()));
+        }
         var bytes_count = DataLengthBits / 8;
         var bits_count = DataLengthBits - bytes_count * 8;
 
