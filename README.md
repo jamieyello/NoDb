@@ -1,6 +1,12 @@
 # NoDb
 A library that helps you sync objects in C# code with various sources. In active development, so it's not ready for use just yet.
 
+Planned features include;
+ - Syncing with a file
+ - Syncing with a multiplayer lobby
+ - Syncing with a database
+ - Chaining any of the above functionality together
+
 ## File Syncing
 ```
 class User {
