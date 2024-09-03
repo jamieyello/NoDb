@@ -26,6 +26,12 @@ public class BitBuilderBuffer {
         DataLengthBits / 8 + // bytes
         ((DataLengthBits % 8) > 0 ? 1 : 0); // trailing byte
 
+    /// <summary> Total length of data in bits. Hanging bits count as one byte. </summary>
+    public long DataLengthBytes =>
+        HeaderLengthBytes +
+        DataLengthBits / 8 + // bytes
+        ((DataLengthBits % 8) > 0 ? 1 : 0); // trailing byte
+
     ulong HeaderData =>
         0ul;
 
@@ -104,13 +110,15 @@ public class BitBuilderBuffer {
         fs.Close();
     }
 
+    internal void WriteHeader(Stream stream) {
+        stream.Write(Encoding.ASCII.GetBytes(FILE_HEADER_TEXT));
+        stream.Write(BitConverter.GetBytes(HeaderData));
+        stream.Write(BitConverter.GetBytes(DataLengthBits));
+        stream.Write(BitConverter.GetBytes(GetKnuthHash()));
+    }
+
     public void WriteToStream(Stream stream, bool include_header = true) {
-        if (include_header) {
-            stream.Write(Encoding.ASCII.GetBytes(FILE_HEADER_TEXT));
-            stream.Write(BitConverter.GetBytes(HeaderData));
-            stream.Write(BitConverter.GetBytes(DataLengthBits));
-            stream.Write(BitConverter.GetBytes(GetHash()));
-        }
+        if (include_header) WriteHeader(stream);
         var bytes_count = DataLengthBits / 8;
         var bits_count = DataLengthBits - bytes_count * 8;
 
@@ -147,7 +155,9 @@ public class BitBuilderBuffer {
         fs.Close();
     }
 
-    public void ReadFromStream(Stream stream) {
+    /// <summary> Read header values from the stream and advance the position. </summary>
+    /// <returns> Expected length of the data in bits. </returns>
+    internal long ReadHeader(Stream stream) {
         var text_header = new byte[FILE_HEADER_TEXT.Length];
         stream.Read(text_header);
         var text_header_str = Encoding.ASCII.GetString(text_header);
@@ -164,16 +174,25 @@ public class BitBuilderBuffer {
 
         if (text_header_str != FILE_HEADER_TEXT) throw new DataMisalignedException("Invalid header from data stream.");
 
-        var bytes_count = total_length_bits / 8;
-        var bits_count = total_length_bits - bytes_count * 8;
+        return total_length_bits;
+    }
+
+    /// <summary> Read buffer from stream. Expects a header by default. </summary>
+    /// <remarks> If <see cref="total_length_bits"/> is provided, this will assume that the stream does not contain a header and only the raw data will be set. You must set the headers manually. </remarks>
+    /// <param name="total_length_bits"> If provided, will not attempt to read the header. </param>
+    public void ReadFromStream(Stream stream, long? total_length_bits = null) {
+        total_length_bits ??= ReadHeader(stream);
+
+        var bytes_count = total_length_bits.Value / 8;
+        var hanging_bit_count = total_length_bits - bytes_count * 8;
 
         var buffer = new byte[bytes_count];
         stream.Read(buffer);
         Append(buffer); // why do interfaces have to be slow? rather speed this up instead of exposing something internal
 
-        if (bits_count > 0) {
+        if (hanging_bit_count > 0) {
             var hanging_bits = (byte)stream.ReadByte();
-            for (int i = 0; i < bits_count; i++) {
+            for (int i = 0; i < hanging_bit_count; i++) {
                 Append((hanging_bits & (128 >> i)) > 0);
             }
         }
@@ -183,7 +202,7 @@ public class BitBuilderBuffer {
         foreach (var b in Encoding.ASCII.GetBytes(FILE_HEADER_TEXT)) yield return b;
         foreach (var b in BitConverter.GetBytes(HeaderData)) yield return b;
         foreach (var b in BitConverter.GetBytes(DataLengthBits)) yield return b;
-        foreach (var b in BitConverter.GetBytes(GetHash())) yield return b;
+        foreach (var b in BitConverter.GetBytes(GetKnuthHash())) yield return b;
     }
 
     // Todo: throw exception if a write method is accessed while this is happening
@@ -209,7 +228,7 @@ public class BitBuilderBuffer {
         }
     }
 
-    public ulong GetHash() =>
+    public ulong GetKnuthHash() =>
         KnuthHash.Calculate(GenericExtensions<ulong>.EnumerateParams(
             _bits.GetHash(),
             _writer.Bits,

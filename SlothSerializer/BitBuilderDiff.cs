@@ -3,8 +3,8 @@ using SlothSerializer.Internal;
 
 namespace SlothSerializer;
 
-// Rules; Does not apply to headers under any circumstances.
-
+// Rules; Does not apply to/patch headers under any circumstances.
+// Updates header when applied.
 public class BitBuilderDiff
 {
     public enum DiffMethodType
@@ -15,15 +15,14 @@ public class BitBuilderDiff
 
     DiffMethodType Method { get; set; }
     MemoryStream? ReplaceData { get; set; }
-    List<BinaryDiffSegment>? PatchSegments { get; set; }
 
     // values of the binary that this should be applied to
     ulong TargetHash { get; set; }
-    long TargetLength { get; set; }
+    long TargetLengthBits { get; set; }
 
     // values of the expected result
     ulong ResultHash { get; set; }
-    long ResultLength { get; set; }
+    long ResultLengthBits { get; set; }
 
     // Todo: This constructor needs to be hidden from the end user, but a method still needs to be made available for JSON serialization.
     [Obsolete("Don't use this manually.")]
@@ -31,27 +30,29 @@ public class BitBuilderDiff
 
     public BitBuilderDiff(BitBuilderBuffer old, BitBuilderBuffer new_, DiffMethodType method) {
         Method = method;
-        TargetHash = KnuthHash.Calculate(old);
-        TargetLength = old.SerializedLengthBytes;
-        ResultHash = KnuthHash.Calculate(new_);
-        ResultLength = new_.SerializedLengthBytes;
+        TargetHash = old.GetKnuthHash();
+        TargetLengthBits = old.DataLengthBytes;
+        ResultHash = new_.GetKnuthHash();
+        ResultLengthBits = new_.DataLengthBytes;
 
         if (Method == DiffMethodType.replace) {
             ReplaceData = new();
-            new_.WriteToStream(ReplaceData);
+            new_.WriteToStream(ReplaceData, false);
         }
         if (Method == DiffMethodType.patch) {
-            PatchSegments = CreateDiffSegments(old, new_);
+            throw new NotImplementedException();
         }
         else throw new NotImplementedException();
     }
 
-    public async Task ApplyToAsync(BitBuilderBuffer buffer) {
+    public void ApplyTo(BitBuilderBuffer buffer) {
         if (Method == DiffMethodType.replace) {
-            
+            if (ReplaceData == null) throw new Exception();
+            ReplaceData.Position = 0;
+            buffer.Clear();
+            buffer.ReadFromStream(ReplaceData, ResultLengthBits);
         }
-
-        throw new NotImplementedException();
+        else throw new NotImplementedException();
     }
 
     public async Task ApplyToAsync(string serialized_buffer_file_path) {
@@ -62,12 +63,12 @@ public class BitBuilderDiff
     }
 
     async Task ApplyToAsync(Stream stream) {
-        await Task.Run(() => CheckHash(stream, TargetLength, TargetHash, "Unpatched"));
+        await Task.Run(() => CheckHash(stream, TargetLengthBits, TargetHash, "Unpatched"));
         
         if (Method == DiffMethodType.replace) await ApplyReplace(stream);
         else throw new NotImplementedException();
 
-        await Task.Run(() => CheckHash(stream, ResultLength, ResultHash, "Patched"));
+        await Task.Run(() => CheckHash(stream, ResultLengthBits, ResultHash, "Patched"));
     }
 
     async Task ApplyReplace(Stream stream) {
@@ -84,42 +85,6 @@ public class BitBuilderDiff
         //if (stream.Length != expected_length) throw new Exception($"{patched_or_unpatched} length mismatch. Expected:{expected_length} Read:{stream.Length}");
         //if (expected_hash != KnuthHash.Calculate(stream)) throw new Exception($"Hash check failure. {patched_or_unpatched} result differs from expected result.");
         stream.Position = 0;
-    }
-
-    static List<BinaryDiffSegment> CreateDiffSegments(BitBuilderBuffer old, BitBuilderBuffer new_) {
-        var res = new List<BinaryDiffSegment>();
-        BinaryDiffSegment? current_diff = null;
-
-        var old_r = old.GetReader();
-        var new_r = new_.GetReader();
-        var old_i = 0;
-        var new_i = 0;
-
-        while (old_r.Remainder >= 64 && new_r.Remainder >= 64) {
-            var old_v = old_r.ReadULong();
-            old_i += 64;
-            var new_v = old_r.ReadULong();
-            new_i += 64;
-            var difference = GetDifference(old_v, new_v);
-            if (difference == -1) {
-                continue;
-            }
-            if (current_diff == null) {
-                //current_diff = BinaryDiffSegment. // uhh
-            }
-        }
-
-        return res;
-    }
-
-    static int GetDifference(ulong v1, ulong v2) {
-        var xor = v1 ^ v2;
-        if (xor == 0) return -1;
-        // there might be a better way
-        for (int i = 0; i < 64; i++) {
-            if (xor.MaskIncludeStart(i) > 0) return i;
-        }
-        throw new Exception("Internal exception.");
     }
 }
 

@@ -17,6 +17,7 @@ public abstract class Syncer {
     public virtual async Task<ConnectionResult> Connect() {
         return ConnectionResult.Success;
     }
+    public virtual async Task<ulong> Fetch() => throw new NotImplementedException();
     public virtual async Task<T?> FullLoad<T>(T default_value) => throw new NotImplementedException();
     public virtual async Task Push(BitBuilderDiff diff) => throw new NotImplementedException();
     public virtual async Task<BitBuilderDiff> Pull(BitBuilderDiff diff) => throw new NotImplementedException();

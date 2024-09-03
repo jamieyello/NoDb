@@ -2,14 +2,15 @@ namespace SlothSerializer.Internal;
 
 // https://stackoverflow.com/a/9545731
 public static class KnuthHash {
-    public static ulong Calculate(BitBuilderBuffer buffer) {
-        ulong hashedValue = 3074457345618258791ul;
-        foreach (var b in buffer.EnumerateAsBytes()) {
-            hashedValue += b;
-            hashedValue *= 3074457345618258799ul;
-        }
-        return hashedValue;
-    }
+    // [Obsolete($"{nameof(BitBuilderBuffer)} has a built in hash function.")]
+    // public static ulong Calculate(BitBuilderBuffer buffer) {
+    //     ulong hashedValue = 3074457345618258791ul;
+    //     foreach (var b in buffer.EnumerateAsBytes(false)) {
+    //         hashedValue += b;
+    //         hashedValue *= 3074457345618258799ul;
+    //     }
+    //     return hashedValue;
+    // }
 
     public static ulong Calculate(Stream stream) {
         ulong hashedValue = 3074457345618258791ul;
